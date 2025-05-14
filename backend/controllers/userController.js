@@ -1,0 +1,217 @@
+import asyncHandler from 'express-async-handler';
+import User from '../models/userModel.js';
+import cloudinary from '../config/cloudinary.js';
+import jwt from 'jsonwebtoken';
+
+// Generate JWT
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: '30d',
+  });
+};
+
+// @desc    Register a new user
+// @route   POST /api/users
+// @access  Public
+const registerUser = asyncHandler(async (req, res) => {
+  const { name, field, username, password } = req.body;
+
+  if (!name || !field || !username || !password || !req.file) {
+    res.status(400);
+    throw new Error('Please fill in all fields and upload a photo');
+  }
+
+  // Check if user exists
+  const userExists = await User.findOne({ username });
+
+  if (userExists) {
+    res.status(400);
+    throw new Error('Username already exists');
+  }
+
+  // Upload image to cloudinary
+  const result = await cloudinary.uploader.upload(req.file.path, {
+    folder: 'user_photos',
+  });
+
+  const user = await User.create({
+    name,
+    field,
+    username,
+    password,
+    photo: result.secure_url,
+    cloudinaryId: result.public_id,
+    role: 'user', // Default role
+  });
+
+  if (user) {
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      username: user.username,
+      field: user.field,
+      photo: user.photo,
+      role: user.role,
+      token: generateToken(user._id),
+    });
+  } else {
+    res.status(400);
+    throw new Error('Invalid user data');
+  }
+});
+
+// @desc    Get all users
+// @route   GET /api/users
+// @access  Private/Admin
+const getUsers = asyncHandler(async (req, res) => {
+  const users = await User.find({}).select('-password');
+  res.json(users);
+});
+
+// @desc    Get user by ID
+// @route   GET /api/users/:id
+// @access  Private/Admin
+const getUserById = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id).select('-password');
+
+  if (user) {
+    res.json(user);
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+// @desc    Update user
+// @route   PUT /api/users/:id
+// @access  Private/Admin
+const updateUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.field = req.body.field || user.field;
+    user.role = req.body.role || user.role;
+    
+    if (req.body.password) {
+      user.password = req.body.password;
+    }
+
+    // If there's a new photo upload
+    if (req.file) {
+      // Delete the previous image from cloudinary
+      await cloudinary.uploader.destroy(user.cloudinaryId);
+      
+      // Upload new image
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'user_photos',
+      });
+      
+      user.photo = result.secure_url;
+      user.cloudinaryId = result.public_id;
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      username: updatedUser.username,
+      field: updatedUser.field,
+      photo: updatedUser.photo,
+      role: updatedUser.role,
+    });
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+// @desc    Delete user
+// @route   DELETE /api/users/:id
+// @access  Private/Admin
+const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (user) {
+    // Delete image from cloudinary
+    await cloudinary.uploader.destroy(user.cloudinaryId);
+    
+    await user.deleteOne();
+    res.json({ message: 'User removed' });
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+// @desc    Update profile photo
+// @route   PUT /api/users/photo
+// @access  Private
+const updateUserPhoto = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user && req.file) {
+    // Delete the previous image from cloudinary
+    await cloudinary.uploader.destroy(user.cloudinaryId);
+    
+    // Upload new image
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'user_photos',
+    });
+    
+    user.photo = result.secure_url;
+    user.cloudinaryId = result.public_id;
+
+    const updatedUser = await user.save();
+
+    res.json({
+      photo: updatedUser.photo,
+      message: 'Photo updated successfully',
+    });
+  } else if (!req.file) {
+    res.status(400);
+    throw new Error('Please upload a photo');
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+// @desc    Delete profile photo
+// @route   DELETE /api/users/photo
+// @access  Private
+const deleteUserPhoto = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    // Delete the image from cloudinary
+    await cloudinary.uploader.destroy(user.cloudinaryId);
+    
+    // Set a default photo
+    const result = await cloudinary.uploader.upload(
+      'https://res.cloudinary.com/demo/image/upload/v1612228187/samples/people/default-profile.jpg', 
+      { folder: 'user_photos' }
+    );
+    
+    user.photo = result.secure_url;
+    user.cloudinaryId = result.public_id;
+    
+    await user.save();
+    
+    res.json({ message: 'Photo removed and set to default' });
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+export { 
+  registerUser, 
+  getUsers, 
+  getUserById, 
+  updateUser, 
+  deleteUser, 
+  updateUserPhoto, 
+  deleteUserPhoto 
+}; 

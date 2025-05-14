@@ -1,27 +1,49 @@
-const express = require('express');
-const cors=require('cors');
-const mongoose = require('mongoose');
-const formDataRoutes = require('./routes/infoRoutes');
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import connectDB from './config/db.js';
+import userRoutes from './routes/userRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES Module fix for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
+connectDB();
+
 const app = express();
-const path = require('path');
+const PORT = process.env.PORT || 5000;
 
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const env = require('dotenv');
-env.config();
-const PORT = process.env.PORT;
+// Make uploads folder static
+app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
-mongoose.connect(process.env.MONGODB_URL)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('Failed to connect to MongoDB', err));
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
 
-app.use('/uploads',express.static(path.join(__dirname,'uploads')));
+// Root route
+app.get('/', (req, res) => {
+  res.send('API is running');
+});
 
-app.use(cors({origin:"http://localhost:5173"}));
-app.use(express.json()); // For parsing JSON
-app.use(express.urlencoded({ extended: true })); // For parsing URL-encoded form data
+// Error handling middleware
+app.use((err, req, res, next) => {
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode);
+  res.json({
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+  });
+});
 
-app.use('/api',formDataRoutes);
-
-app.listen(PORT,()=>{
-    console.log(`server is running on ${PORT}....`);
-})
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+}); 
