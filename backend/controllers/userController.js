@@ -177,7 +177,7 @@ const updateUserPhoto = asyncHandler(async (req, res) => {
     throw new Error('User not found');
   }
 });
-
+  
 // @desc    Delete profile photo
 // @route   DELETE /api/users/photo
 // @access  Private

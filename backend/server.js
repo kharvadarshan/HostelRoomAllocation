@@ -4,6 +4,7 @@ import cors from 'cors';
 import connectDB from './config/db.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import roomRoutes from './routes/roomRoutes.js'
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -28,7 +29,7 @@ app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
-
+app.use('/api/room',roomRoutes);
 // Root route
 app.get('/', (req, res) => {
   res.send('API is running');

@@ -28,6 +28,11 @@ const userSchema = mongoose.Schema(
       type: String,
       required: [true, 'Please add a password'],
     },
+    room:{
+       type:String,
+       default:"",
+       required:false
+    },
     role: {
       type: String,
       enum: ['user', 'admin'],
