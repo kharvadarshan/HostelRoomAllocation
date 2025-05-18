@@ -10,6 +10,12 @@ import {
 import Navbar from './components/Navbar';
 import {MyRoutes} from '@/routes.jsx';
 import { SplashScreen } from '@/pages/SplashScreen.jsx';
+import ThemeProvider from './theme/ThemeProvider';
+import '@fontsource/inter/300.css';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
 
 function App() {
   const dispatch = useDispatch();
@@ -54,13 +60,27 @@ function App() {
   }
 
   return (
+    <ThemeProvider>
       <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Toaster position="top-right"/>
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            className: 'dark:bg-gray-800 dark:text-white',
+            style: {
+              borderRadius: '10px',
+              background: '#fff',
+              color: '#333',
+            },
+          }}
+        />
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-150">
           <Navbar/>
-          <MyRoutes/> 
+          <main className="pt-2">
+            <MyRoutes/> 
+          </main>
         </div>
       </Router>
+    </ThemeProvider>
   );
 }
 
