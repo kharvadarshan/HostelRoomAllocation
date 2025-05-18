@@ -7,7 +7,8 @@ import {
   deleteUser,
   updateUserPhoto,
   deleteUserPhoto,
-  getUnallocatedUsers
+  getUnallocatedUsers,
+  getAllocatedUsers
 } from '../controllers/userController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import upload from '../middleware/uploadMiddleware.js';
@@ -26,11 +27,8 @@ router.route('/photo')
 router.route('/')
   .get(protect, admin, getUsers);
 
-
-
 router.get('/unallocated', protect, admin, getUnallocatedUsers);
-
-
+router.get('/allocated', protect, admin, getAllocatedUsers);
 
 router.route('/:id')
   .get(protect, admin, getUserById)

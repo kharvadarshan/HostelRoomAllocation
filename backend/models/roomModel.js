@@ -29,6 +29,10 @@ const roomSchema = mongoose.Schema({
     },
     allocatedPersons:{
         type: [mongoose.Schema.Types.ObjectId],
+    },
+    group: {
+        type: String,
+        required: false,
     }
 });
 
