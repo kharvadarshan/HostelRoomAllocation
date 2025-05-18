@@ -13,10 +13,10 @@ const generateToken = (id) => {
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
+  const { mobile, password } = req.body;
 
-  // Check for username
-  const user = await User.findOne({ username });
+  // Check for mobile
+  const user = await User.findOne({ mobile });
 
   if (user && (await user.matchPassword(password))) {
     res.json({
@@ -30,7 +30,7 @@ const loginUser = asyncHandler(async (req, res) => {
     });
   } else {
     res.status(401);
-    throw new Error('Invalid username or password');
+    throw new Error('Invalid mobile or password');
   }
 });
 

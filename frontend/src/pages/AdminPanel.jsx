@@ -130,7 +130,7 @@ const AdminPanel = () => {
                     Field
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Username
+                    mobile
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Room
@@ -172,7 +172,7 @@ const AdminPanel = () => {
                       <div className="text-sm text-gray-900">{user.field}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{user.username}</div>
+                      <div className="text-sm text-gray-900">{user.mobile}</div>
                     </td>
                      <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{ user.room ? user.room : "None"}</div>

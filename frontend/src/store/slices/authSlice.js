@@ -13,10 +13,10 @@ export const setAuthToken = (token) => {
 // Async thunks
 export const login = createAsyncThunk(
   'auth/login',
-  async ({ username, password }, { rejectWithValue }) => {
+  async ({ mobile, password }, { rejectWithValue }) => {
     try {
-      const { data } = await axios.post('http://localhost:5000/api/auth/login', {
-        username,
+      const { data } = await axios.post(`${import.meta.env.VITE_APP_URL}/api/auth/login`, {
+        mobile,
         password
       });
       
@@ -36,18 +36,21 @@ export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
-      const formData = new FormData();
+      let formData = new FormData();
       formData.append('name', userData.name);
       formData.append('field', userData.field);
-      formData.append('username', userData.username);
+      formData.append('mobile', userData.mobile);
       formData.append('password', userData.password);
       if (userData.photo) {
         formData.append('photo', userData.photo);
       }
       
-      const { data } = await axios.post('http://localhost:5000/api/users', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const { data } = await axios.post(`${import.meta.env.VITE_APP_URL}/api/users`, formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        }
       });
+      console.log("Registration response:", data);
       
       // Set auth token in axios headers
       setAuthToken(data.token);
@@ -65,7 +68,7 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (userData, { rejectWithValue }) => {
     try {
-      const { data } = await axios.put('http://localhost:5000/api/auth/profile', userData);
+      const { data } = await axios.put(`${import.meta.env.VITE_APP_URL}/api/auth/profile`, userData);
       return data;
     } catch (error) {
       return rejectWithValue(
@@ -82,7 +85,7 @@ export const updatePhoto = createAsyncThunk(
       const formData = new FormData();
       formData.append('photo', photo);
       
-      const { data } = await axios.put('http://localhost:5000/api/users/photo', formData, {
+      const { data } = await axios.put(`${import.meta.env.VITE_APP_URL}/api/users/photo`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -99,10 +102,10 @@ export const deletePhoto = createAsyncThunk(
   'auth/deletePhoto',
   async (_, { rejectWithValue, dispatch }) => {
     try {
-      await axios.delete('http://localhost:5000/api/users/photo');
+      await axios.delete(`${import.meta.env.VITE_APP_URL}/api/users/photo`);
       
       // Refresh the user profile to get updated data
-      const { data } = await axios.get('http://localhost:5000/api/auth/profile');
+      const { data } = await axios.get(`${import.meta.env.VITE_APP_URL}/api/auth/profile`);
       return data;
     } catch (error) {
       return rejectWithValue(
@@ -116,7 +119,7 @@ export const getUserProfile = createAsyncThunk(
   'auth/getUserProfile',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axios.get('http://localhost:5000/api/auth/profile');
+      const { data } = await axios.get(`${import.meta.env.VITE_APP_URL}/api/auth/profile`);
       return data;
     } catch (error) {
       return rejectWithValue(

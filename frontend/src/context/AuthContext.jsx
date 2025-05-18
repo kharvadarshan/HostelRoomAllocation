@@ -27,13 +27,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (username, password) => {
+  const login = async (mobile, password) => {
     try {
       setLoading(true);
       setError(null);
       
-      const { data } = await axios.post('http://localhost:5000/api/auth/login', {
-        username,
+      const { data } = await axios.post(`${import.meta.env.VITE_APP_URL}/api/auth/login`, {
+        mobile,
         password
       });
       
@@ -60,11 +60,11 @@ export const AuthProvider = ({ children }) => {
       const formData = new FormData();
       formData.append('name', userData.name);
       formData.append('field', userData.field);
-      formData.append('username', userData.username);
+      formData.append('mobile', userData.mobile);
       formData.append('password', userData.password);
       formData.append('photo', userData.photo);
       
-      const { data } = await axios.post('http://localhost:5000/api/users', formData, {
+      const { data } = await axios.post(`${import.meta.env.VITE_APP_URL}/api/users`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const { data } = await axios.put('http://localhost:5000/api/auth/profile', userData);
+      const { data } = await axios.put(`${import.meta.env.VITE_APP_URL}/api/auth/profile`, userData);
       
       setUser({ ...user, ...data });
       localStorage.setItem('userInfo', JSON.stringify({ ...user, ...data }));
@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }) => {
       const formData = new FormData();
       formData.append('photo', photo);
       
-      const { data } = await axios.put('http://localhost:5000/api/users/photo', formData, {
+      const { data } = await axios.put(`${import.meta.env.VITE_APP_URL}/api/users/photo`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -142,12 +142,12 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      await axios.delete('http://localhost:5000/api/users/photo');
+      await axios.delete(`${import.meta.env.VITE_APP_URL}/api/users/photo`);
       
       toast.success('Photo removed successfully');
       
       // Refresh user profile to get the default photo
-      const { data } = await axios.get('http://localhost:5000/api/auth/profile');
+      const { data } = await axios.get(`${import.meta.env.VITE_APP_URL}/api/auth/profile`);
       const updatedUser = { ...user, photo: data.photo };
       setUser(updatedUser);
       localStorage.setItem('userInfo', JSON.stringify(updatedUser));

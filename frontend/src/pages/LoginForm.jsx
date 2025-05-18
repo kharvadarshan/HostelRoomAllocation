@@ -6,7 +6,7 @@ import { login, getUserProfile, selectAuthError, selectAuthLoading, clearError }
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
-    username: '',
+    mobile: '',
     password: ''
   });
   
@@ -33,14 +33,14 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.username || !formData.password) {
-      toast.error('Please enter username and password');
+    if (!formData.mobile || !formData.password) {
+      toast.error('Please enter mobile and password');
       return;
     }
     
     try {
       const resultAction = await dispatch(login({
-        username: formData.username,
+        mobile: formData.mobile,
         password: formData.password
       }));
       
@@ -67,15 +67,15 @@ const LoginForm = () => {
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="username" className="form-label">Username</label>
+          <label htmlFor="mobile" className="form-label">mobile</label>
           <input
-            id="username"
-            name="username"
+            id="mobile"
+            name="mobile"
             type="text"
             className="input-field"
-            value={formData.username}
+            value={formData.mobile}
             onChange={handleChange}
-            placeholder="Enter your username"
+            placeholder="Enter your mobile"
             required
           />
         </div>
