@@ -19,7 +19,11 @@ export const MyRoutes = () => {
         <Route
             path="/"
             element={
-              isAuthenticated ? <Navigate to="/dashboard" replace/> : <RegisterForm/>
+              isAuthenticated 
+                ? isAdmin 
+                  ? <UserDashboard/> 
+                  : <Navigate to="/dashboard" replace/>
+                : <RegisterForm/>
             }
         />
         <Route

@@ -252,7 +252,63 @@ const getUnallocatedUsers = async (req, res) => {
   }
 };
 
-
+// Get Allocated Users by IDs
+const getAllocatedUsers = async (req, res) => {
+  try {
+    const { userIds } = req.query;
+    
+    if (!userIds) {
+      return res.status(400).json({
+        ok: false,
+        message: 'User IDs are required'
+      });
+    }
+    
+    // Split the comma-separated string into an array of IDs
+    const userIdArray = userIds.split(',').filter(id => id.trim().length > 0);
+    
+    if (userIdArray.length === 0) {
+      return res.status(200).json({
+        ok: true,
+        users: []
+      });
+    }
+    
+    // Validate that all IDs are valid MongoDB ObjectIDs
+    const mongoose = await import('mongoose');
+    const validIds = userIdArray.filter(id => {
+      try {
+        return mongoose.default.Types.ObjectId.isValid(id);
+      } catch (err) {
+        return false;
+      }
+    });
+    
+    if (validIds.length === 0) {
+      return res.status(200).json({
+        ok: true,
+        users: []
+      });
+    }
+    
+    // Fetch users by their IDs
+    const users = await User.find({
+      _id: { $in: validIds }
+    }).select('-password');
+    
+    res.status(200).json({
+      ok: true,
+      users
+    });
+  } catch (error) {
+    console.error('Error fetching allocated users:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Server error while fetching allocated users',
+      error: error.message
+    });
+  }
+};
 
 export {
   registerUser,
@@ -263,4 +319,5 @@ export {
   updateUserPhoto,
   deleteUserPhoto,
   getUnallocatedUsers,
+  getAllocatedUsers,
 };

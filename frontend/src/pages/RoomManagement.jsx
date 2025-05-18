@@ -4,15 +4,20 @@ import { toast } from 'react-hot-toast';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import api from '../api';
-import { 
-  FiPlus, 
-  FiFilter, 
-  FiEdit3, 
-  FiTrash2, 
+import {
+  FiPlus,
+  FiFilter,
+  FiEdit3,
+  FiTrash2,
   FiX,
   FiChevronLeft,
   FiChevronRight,
-  FiUsers
+  FiUsers,
+  FiUser,
+  FiLayers,
+  FiMail,
+  FiPhone,
+  FiInfo, FiHome,
 } from 'react-icons/fi';
 
 const RoomManagement = () => {
@@ -21,11 +26,14 @@ const RoomManagement = () => {
   const [floorFilter, setFloorFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
   const [currentRoom, setCurrentRoom] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
     roomNo: '',
     capacity: 4
   });
+  const [allocatedUsers, setAllocatedUsers] = useState({});
 
   useEffect(() => {
     fetchRooms();
@@ -40,6 +48,19 @@ const RoomManagement = () => {
       
       if (data.ok) {
         setRooms(data.rooms);
+        
+        // Collect all user IDs from allocated persons
+        const userIds = data.rooms.reduce((ids, room) => {
+          if (room.allocatedPersons && room.allocatedPersons.length > 0) {
+            return [...ids, ...room.allocatedPersons];
+          }
+          return ids;
+        }, []);
+        
+        // If we have allocated users, fetch their details
+        if (userIds.length > 0) {
+          fetchAllocatedUsers(userIds);
+        }
       } else {
         toast.error(data.message || 'Failed to fetch rooms');
       }
@@ -48,6 +69,46 @@ const RoomManagement = () => {
       toast.error('Failed to fetch rooms');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllocatedUsers = async (userIds) => {
+    try {
+      if (!userIds || userIds.length === 0) {
+        return;
+      }
+      
+      // Using a single request with query parameters to get multiple users
+      const { data } = await api.get('/users/allocated', { 
+        params: { userIds: userIds.join(',') } 
+      });
+      
+      if (data.ok) {
+        // Convert array to object with _id as keys for easier lookup
+        const usersMap = data.users.reduce((map, user) => {
+          map[user._id] = user;
+          return map;
+        }, {});
+        setAllocatedUsers(usersMap);
+      }
+    } catch (error) {
+      console.error('Error fetching allocated users:', error);
+      
+      // For UI purposes, we'll create placeholder objects for users that failed to load
+      const placeholderUsersMap = {};
+      userIds.forEach(id => {
+        placeholderUsersMap[id] = {
+          _id: id,
+          name: 'User data unavailable',
+          photo: null,
+          error: true
+        };
+      });
+      
+      setAllocatedUsers(prev => ({
+        ...prev,
+        ...placeholderUsersMap
+      }));
     }
   };
 
@@ -75,7 +136,6 @@ const RoomManagement = () => {
     e.preventDefault();
     
     try {
-      // This would require a PATCH endpoint to be added to the backend
       const { data } = await api.patch(`/rooms/${currentRoom._id}`, formData);
       
       if (data.ok) {
@@ -99,7 +159,6 @@ const RoomManagement = () => {
     }
     
     try {
-      // This would require a DELETE endpoint to be added to the backend
       const { data } = await api.delete(`/rooms/${roomId}`);
       
       if (data.ok) {
@@ -141,6 +200,11 @@ const RoomManagement = () => {
     setShowEditModal(true);
   };
 
+  const openUserModal = (user) => {
+    setSelectedUser(user);
+    setShowUserModal(true);
+  };
+
   // Helper to extract floor number from room number
   const getFloorFromRoomNo = (roomNo) => {
     if (!roomNo) return '?';
@@ -154,7 +218,7 @@ const RoomManagement = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="container-fluid px-4 py-8 max-w-full">
       {/* Add Room Modal */}
       <AnimatePresence>
         {showAddModal && (
@@ -302,6 +366,104 @@ const RoomManagement = () => {
         )}
       </AnimatePresence>
 
+      {/* User Detail Modal */}
+      <AnimatePresence>
+        {showUserModal && selectedUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowUserModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">User Details</h2>
+                <button
+                  onClick={() => setShowUserModal(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="flex flex-col items-center mb-6">
+                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary-500 mb-4">
+                  {selectedUser.photo ? (
+                    <img 
+                      src={selectedUser.photo} 
+                      alt={selectedUser.name} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <FiUser className="h-12 w-12 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{selectedUser.name}</h3>
+                <p className="text-primary-600 dark:text-primary-400">{selectedUser.field}</p>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <FiPhone className="text-primary-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Mobile</p>
+                    <p>{selectedUser.mobile || 'Not provided'}</p>
+                  </div>
+                </div>
+                
+                {selectedUser.group && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <FiUsers className="text-primary-500 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Group</p>
+                      <p>{selectedUser.group}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {selectedUser.level && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <FiLayers className="text-primary-500 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Level</p>
+                      <p>Level {selectedUser.level}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {selectedUser.room && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <FiHome className="text-primary-500 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Room</p>
+                      <p>Room {selectedUser.room}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-6 flex justify-end">
+                <Button
+                  onClick={() => setShowUserModal(false)}
+                  variant="outline"
+                >
+                  Close
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Card>
         <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4">
           <div>
@@ -355,7 +517,7 @@ const RoomManagement = () => {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {rooms.map((room) => (
                 <motion.div
                   key={room._id}
@@ -405,19 +567,68 @@ const RoomManagement = () => {
                         <p className="text-gray-500 italic">No one allocated yet</p>
                       ) : (
                         <ul className="space-y-2">
-                          {/* Note: This would need to be populated with user information fetched separately or included in the API response */}
-                          {room.allocatedPersons.map((personId, index) => (
-                            <li key={personId} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-900 rounded">
-                              <span>User ID: {personId.toString().substring(0, 8)}...</span>
-                              <button
-                                onClick={() => handleDeAllocateUser(room._id, personId)}
-                                className="text-red-500 hover:text-red-700 p-1"
-                                title="Remove user"
-                              >
-                                <FiX className="w-4 h-4" />
-                              </button>
-                            </li>
-                          ))}
+                          {room.allocatedPersons.map((personId) => {
+                            const user = allocatedUsers[personId];
+                            return (
+                              <li key={personId} className="flex justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                                <div 
+                                  className="flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 transition-colors w-full"
+                                  onClick={() => user && !user.error && openUserModal(user)}
+                                >
+                                  {user ? (
+                                    <>
+                                      <div className="w-10 h-10 rounded-full overflow-hidden mr-3 border border-primary-200">
+                                        {user.photo ? (
+                                          <img 
+                                            src={user.photo} 
+                                            alt={user.name} 
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                            <FiUser className="text-gray-500" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className={`font-medium text-sm truncate ${user.error ? 'text-red-500' : ''}`}>
+                                          {user.name}
+                                        </p>
+                                        {!user.error && (
+                                          <div className="flex items-center space-x-1 mt-1">
+                                            {user.group && (
+                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
+                                                {user.group}
+                                              </span>
+                                            )}
+                                            {user.level && (
+                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200">
+                                                Level {user.level}
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="flex items-center">
+                                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 flex items-center justify-center">
+                                        <FiUser className="text-gray-500" />
+                                      </div>
+                                      <span className="text-sm">Loading user...</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => handleDeAllocateUser(room._id, personId)}
+                                  className="text-red-500 hover:text-red-700 p-1 self-center ml-2 flex-shrink-0"
+                                  title="Remove user"
+                                >
+                                  <FiX className="w-4 h-4" />
+                                </button>
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
                     </div>

@@ -55,7 +55,7 @@ const Navbar = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                Shrrekar Hostel
+                Shreekar Hostel
               </motion.span>
             </Link>
           </div>

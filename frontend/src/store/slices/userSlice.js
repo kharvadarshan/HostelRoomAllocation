@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../../api';
 
 // Async thunks
 export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_APP_URL}/api/users`);
+      const { data } = await api.get('/users');
       return data;
     } catch (error) {
       return rejectWithValue(
@@ -16,11 +16,35 @@ export const fetchUsers = createAsyncThunk(
   }
 );
 
+export const fetchUnallocatedUsers = createAsyncThunk(
+  'users/fetchUnallocatedUsers',
+  async ({ group, level } = {}, { rejectWithValue }) => {
+    try {
+      const params = {};
+      if (group) params.group = group;
+      if (level) params.level = level;
+      
+      const { data } = await api.get('/users/unallocated', { params });
+      
+      if (data.ok) {
+        return data.users;
+      } else {
+        return rejectWithValue(data.message || 'Failed to fetch unallocated users');
+      }
+    } catch (error) {
+      console.error('Error fetching unallocated users:', error.response?.data || error.message);
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch unallocated users'
+      );
+    }
+  }
+);
+
 export const deleteUser = createAsyncThunk(
   'users/deleteUser',
   async (id, { rejectWithValue }) => {
     try {
-      await axios.delete(`http://localhost:5000/api/users/${id}`);
+      await api.delete(`/users/${id}`);
       return id;
     } catch (error) {
       return rejectWithValue(
@@ -34,9 +58,7 @@ export const promoteToAdmin = createAsyncThunk(
   'users/promoteToAdmin',
   async (id, { rejectWithValue }) => {
     try {
-      const { data } = await axios.put(`http://localhost:5000/api/users/${id}`, {
-        role: 'admin'
-      });
+      const { data } = await api.put(`/users/${id}/promote`);
       return data;
     } catch (error) {
       return rejectWithValue(
@@ -49,6 +71,9 @@ export const promoteToAdmin = createAsyncThunk(
 // Initial state
 const initialState = {
   users: [],
+  unallocatedUsers: [],
+  unallocatedUsersByGroup: {},
+  unallocatedUsersByLevel: {},
   selectedUser: null,
   loading: false,
   error: null
@@ -67,6 +92,26 @@ const userSlice = createSlice({
     },
     clearError: (state) => {
       state.error = null;
+    },
+    removeAllocatedUser: (state, action) => {
+      // Remove user from unallocatedUsers when they get allocated
+      state.unallocatedUsers = state.unallocatedUsers.filter(
+        user => user._id !== action.payload
+      );
+      
+      // Also remove from grouped users
+      Object.keys(state.unallocatedUsersByGroup).forEach(group => {
+        state.unallocatedUsersByGroup[group] = state.unallocatedUsersByGroup[group].filter(
+          user => user._id !== action.payload
+        );
+      });
+      
+      // And from level-grouped users
+      Object.keys(state.unallocatedUsersByLevel).forEach(level => {
+        state.unallocatedUsersByLevel[level] = state.unallocatedUsersByLevel[level].filter(
+          user => user._id !== action.payload
+        );
+      });
     }
   },
   extraReducers: (builder) => {
@@ -81,6 +126,40 @@ const userSlice = createSlice({
         state.users = action.payload;
       })
       .addCase(fetchUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // Fetch Unallocated Users
+      .addCase(fetchUnallocatedUsers.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUnallocatedUsers.fulfilled, (state, action) => {
+        state.loading = false;
+        state.unallocatedUsers = action.payload;
+        
+        // Organize users by group
+        const usersByGroup = {};
+        action.payload.forEach(user => {
+          if (!usersByGroup[user.group]) {
+            usersByGroup[user.group] = [];
+          }
+          usersByGroup[user.group].push(user);
+        });
+        state.unallocatedUsersByGroup = usersByGroup;
+        
+        // Organize users by level
+        const usersByLevel = {};
+        action.payload.forEach(user => {
+          if (!usersByLevel[user.level]) {
+            usersByLevel[user.level] = [];
+          }
+          usersByLevel[user.level].push(user);
+        });
+        state.unallocatedUsersByLevel = usersByLevel;
+      })
+      .addCase(fetchUnallocatedUsers.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
@@ -119,10 +198,18 @@ const userSlice = createSlice({
   }
 });
 
-export const { setSelectedUser, clearSelectedUser, clearError } = userSlice.actions;
+export const { 
+  setSelectedUser, 
+  clearSelectedUser, 
+  clearError,
+  removeAllocatedUser
+} = userSlice.actions;
 
 // Selectors
 export const selectUsers = (state) => state.users.users;
+export const selectUnallocatedUsers = (state) => state.users.unallocatedUsers;
+export const selectUnallocatedUsersByGroup = (state) => state.users.unallocatedUsersByGroup;
+export const selectUnallocatedUsersByLevel = (state) => state.users.unallocatedUsersByLevel;
 export const selectSelectedUser = (state) => state.users.selectedUser;
 export const selectUsersLoading = (state) => state.users.loading;
 export const selectUsersError = (state) => state.users.error;
