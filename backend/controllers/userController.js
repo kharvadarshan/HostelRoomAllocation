@@ -14,15 +14,15 @@ const generateToken = (id) => {
 // @route   POST /api/users
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, field, username, password } = req.body;
+  const { name, field, mobile, password } = req.body;
 
-  if (!name || !field || !username || !password || !req.file) {
+  if (!name || !field || !mobile || !password || !req.file) {
     res.status(400);
     throw new Error('Please fill in all fields and upload a photo');
   }
 
   // Check if user exists
-  const userExists = await User.findOne({ username });
+  const userExists = await User.findOne({ mobile });
 
   if (userExists) {
     res.status(400);
@@ -37,7 +37,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const user = await User.create({
     name,
     field,
-    username,
+    mobile,
     password,
     photo: result.secure_url,
     cloudinaryId: result.public_id,
@@ -48,7 +48,7 @@ const registerUser = asyncHandler(async (req, res) => {
     res.status(201).json({
       _id: user._id,
       name: user.name,
-      username: user.username,
+      mobile: user.mobile,
       field: user.field,
       photo: user.photo,
       role: user.role,
@@ -116,7 +116,7 @@ const updateUser = asyncHandler(async (req, res) => {
     res.json({
       _id: updatedUser._id,
       name: updatedUser.name,
-      username: updatedUser.username,
+      mobile: updatedUser.mobile,
       field: updatedUser.field,
       photo: updatedUser.photo,
       role: updatedUser.role,
