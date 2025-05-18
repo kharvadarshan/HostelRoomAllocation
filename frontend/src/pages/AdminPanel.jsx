@@ -11,7 +11,7 @@ import {
   setSelectedUser,
   selectSelectedUser,
   clearSelectedUser
-} from '../store/slices/userSlice';
+} from '../store/slices/userSlice.js';
 
 const AdminPanel = () => {
   const dispatch = useDispatch();

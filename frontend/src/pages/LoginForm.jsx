@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { login, getUserProfile, selectAuthError, selectAuthLoading, clearError } from '../store/slices/authSlice';
+import { login, getUserProfile, selectAuthError, selectAuthLoading, clearError } from '../store/slices/authSlice.js';
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
