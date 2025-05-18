@@ -207,6 +207,24 @@ const deleteUserPhoto = asyncHandler(async (req, res) => {
   }
 });
 
+// Get Unallocated Users
+const getUnallocatedUsers = async (req, res) => {
+  try {
+    const users = await User.find({ room: { $in: ["", null] } });
+    
+    res.status(200).json({
+      ok: true,
+      users
+    });
+  } catch (error) {
+    console.error('Error fetching unallocated users:', error);
+    res.status(500).json({ 
+      ok: false,
+      message: 'Server error while fetching unallocated users' 
+    });
+  }
+};
+
 export { 
   registerUser, 
   getUsers, 
@@ -214,5 +232,6 @@ export {
   updateUser, 
   deleteUser, 
   updateUserPhoto, 
-  deleteUserPhoto 
+  deleteUserPhoto,
+  getUnallocatedUsers
 }; 

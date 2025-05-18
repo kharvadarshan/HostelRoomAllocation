@@ -7,6 +7,7 @@ import {
   deleteUser,
   updateUserPhoto,
   deleteUserPhoto,
+  getUnallocatedUsers
 } from '../controllers/userController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import upload from '../middleware/uploadMiddleware.js';
@@ -24,6 +25,8 @@ router.route('/photo')
 // Admin routes
 router.route('/')
   .get(protect, admin, getUsers);
+
+router.get('/unallocated', protect, admin, getUnallocatedUsers);
 
 router.route('/:id')
   .get(protect, admin, getUserById)

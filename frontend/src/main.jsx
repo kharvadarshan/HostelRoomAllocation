@@ -3,8 +3,15 @@ import ReactDOM from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
 import { store, persistor } from './store'
+import { setAuthToken } from './store/slices/authSlice'
 import App from './App.jsx'
 import './index.css'
+
+// Initialize auth token if it exists in localStorage
+const token = localStorage.getItem('token');
+if (token) {
+  setAuthToken(token);
+}
 
 // Helper function to clear persisted state in case of errors
 const handlePersistorError = () => {

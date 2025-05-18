@@ -100,19 +100,16 @@ const AllocatePerson = async(req,res)=>{
 
 
 const GetRoomById = async(req,res)=>{
-
     try
     {
-          const {id}=req.params;
-          const newId = new mongoose.Types.ObjectId(id);
-          const result = await Room.findById(newId);
+          const { id } = req.params;
+          const room = await Room.findById(id);
 
-          if(!result)
+          if(!room)
           {
-            return res.status(400).json({ok:false,message:"Room not found."})
+            return res.status(404).json({ok:false, message:"Room not found."})
           }
-           return res.status(201).json({ok:true,room:result});
-
+           return res.status(200).json({ok:true, room});
     }catch(error)
     {
         console.error('Error getting room by id', error);
@@ -123,32 +120,33 @@ const GetRoomById = async(req,res)=>{
 
 const GetAllRoom = async(req,res)=>{
     try{
-        const { floor} = req.query;
+        const { floor } = req.query;
    
-         let allrooms= await Room.find({});
+        let allrooms = await Room.find({});
 
-
-        if(floor)
-        {
-             const floorStr = String(floor);
-             allrooms = allrooms.filter(room =>{
-                if(!isNaN(room.roomNo))
-                {
-                    return room.roomNo.startsWith(floorStr);
+        if(floor) {
+            // Filter rooms by floor (first digit of room number)
+            allrooms = allrooms.filter(room => {
+                if(room.roomNo) {
+                    return room.roomNo.toString().charAt(0) === floor;
                 }
                 return false;
-             })
+            });
         }
 
-        if(!allrooms || allrooms.length === 0)
-        {
-            return res.status(404).json({ok:false,message:"No rooms found."});
-        }
-       
-        return res.status(201).json({ok:true,message:"all rooms",rooms:allrooms});
-    }catch(error)
-    {
-        return res.status(500).json({ message: "Server error", error });
+        // If no rooms found, return empty array instead of 404
+        return res.status(200).json({
+            ok: true, 
+            message: "all rooms", 
+            rooms: allrooms || []
+        });
+    } catch(error) {
+        console.error('Error fetching rooms:', error);
+        return res.status(500).json({ 
+            ok: false,
+            message: "Server error", 
+            error: error.message 
+        });
     }
 }
 
@@ -224,4 +222,97 @@ const DeAllocateUser=async(req,res)=>{
     }
 }
 
-export { CreateRoom,AllocatePerson,GetRoomById,GetAllRoom,DeAllocateUser};
+// Update room details
+const UpdateRoom = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { roomNo, capacity } = req.body;
+        
+        // Validate inputs
+        if (!roomNo || !capacity) {
+            return res.status(400).json({ 
+                ok: false, 
+                message: 'Room number and capacity are required' 
+            });
+        }
+        
+        // Check if room exists
+        const room = await Room.findById(id);
+        if (!room) {
+            return res.status(404).json({ 
+                ok: false, 
+                message: 'Room not found' 
+            });
+        }
+        
+        // Check if new room number already exists (if changed)
+        if (roomNo !== room.roomNo) {
+            const existingRoom = await Room.findOne({ roomNo });
+            if (existingRoom) {
+                return res.status(400).json({ 
+                    ok: false, 
+                    message: 'Room number already exists' 
+                });
+            }
+        }
+        
+        // Update room
+        const updatedRoom = await Room.findByIdAndUpdate(
+            id,
+            { roomNo, capacity },
+            { new: true }
+        );
+        
+        return res.status(200).json({
+            ok: true,
+            message: 'Room updated successfully',
+            room: updatedRoom
+        });
+    } catch (error) {
+        console.error('Error updating room:', error);
+        return res.status(500).json({ 
+            ok: false, 
+            message: 'Server error while updating room' 
+        });
+    }
+};
+
+// Delete room
+const DeleteRoom = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Check if room exists
+        const room = await Room.findById(id);
+        if (!room) {
+            return res.status(404).json({ 
+                ok: false, 
+                message: 'Room not found' 
+            });
+        }
+        
+        // Check if room has allocated users
+        if (room.allocatedPersons && room.allocatedPersons.length > 0) {
+            return res.status(400).json({ 
+                ok: false, 
+                message: 'Cannot delete room with allocated users' 
+            });
+        }
+        
+        // Delete room
+        await Room.findByIdAndDelete(id);
+        
+        return res.status(200).json({
+            ok: true,
+            message: 'Room deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting room:', error);
+        return res.status(500).json({ 
+            ok: false, 
+            message: 'Server error while deleting room' 
+        });
+    }
+};
+
+export { CreateRoom,AllocatePerson,GetRoomById,GetAllRoom,DeAllocateUser,UpdateRoom,DeleteRoom};

@@ -1,13 +1,25 @@
 import express from 'express'
 const router = express.Router();
-import {CreateRoom,AllocatePerson,GetRoomById,GetAllRoom,DeAllocateUser} from  '../controllers/roomController.js'
+import {
+  CreateRoom,
+  AllocatePerson,
+  GetRoomById,
+  GetAllRoom,
+  DeAllocateUser,
+  UpdateRoom,
+  DeleteRoom
+} from '../controllers/roomController.js';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
+// Protected admin routes
+router.post('/', protect, admin, CreateRoom);
+router.get('/', GetAllRoom);
+router.get('/:id', GetRoomById);
+router.patch('/:id', protect, admin, UpdateRoom);
+router.delete('/:id', protect, admin, DeleteRoom);
 
-router.post('/',CreateRoom);
-router.post('/user',AllocatePerson);
-router.get('/',GetAllRoom);
-router.get('/get-roombyid/:id',GetRoomById);
-router.delete('/',DeAllocateUser);
+// User allocation routes
+router.post('/user', protect, admin, AllocatePerson);
+router.delete('/', protect, admin, DeAllocateUser);
 
-
-export default  router;
+export default router;

@@ -29,7 +29,7 @@ app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/room',roomRoutes);
+app.use('/api/rooms', roomRoutes);
 // Root route
 app.get('/', (req, res) => {
   res.send('API is running');

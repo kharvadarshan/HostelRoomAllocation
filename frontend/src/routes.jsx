@@ -4,12 +4,15 @@ import ProtectedRoute from '@/components/ProtectedRoute.jsx';
 import AdminPanel from '@/pages/AdminPanel.jsx';
 import LoginForm from '@/pages/LoginForm.jsx';
 import RegisterForm from '@/pages/RegisterForm.jsx';
+import RoomManagement from '@/pages/RoomManagement.jsx';
+import RoomAllocation from '@/pages/RoomAllocation.jsx';
 import {useSelector} from 'react-redux';
-import {selectIsAuthenticated} from '@/store/slices/authSlice.js';
+import {selectIsAuthenticated, selectIsAdmin} from '@/store/slices/authSlice.js';
 
 export const MyRoutes = () => {
 
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const isAdmin = useSelector(selectIsAdmin);
 
   return (
       <Routes>
@@ -30,6 +33,22 @@ export const MyRoutes = () => {
             element={
               <ProtectedRoute>
                 <AdminPanel/>
+              </ProtectedRoute>
+            }
+        />
+        <Route
+            path="/rooms"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <RoomManagement/>
+              </ProtectedRoute>
+            }
+        />
+        <Route
+            path="/room-allocation"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <RoomAllocation/>
               </ProtectedRoute>
             }
         />
