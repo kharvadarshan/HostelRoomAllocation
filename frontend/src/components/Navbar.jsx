@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   selectUser, 
@@ -28,7 +28,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Link to="/" className="font-bold text-xl">User Data App</Link>
+              <Link to="/" className="font-bold text-xl">Shrrekar Hostel</Link>
             </div>
           </div>
           

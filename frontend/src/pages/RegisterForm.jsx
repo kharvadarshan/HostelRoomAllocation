@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { register, getUserProfile, selectAuthError, selectAuthLoading, clearError } from '../store/slices/authSlice';
+import { register, getUserProfile, selectAuthError, selectAuthLoading, clearError } from '../store/slices/authSlice.js';
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
     name: '',
     field: '',
-    username: '',
+    mobile: '',
     password: '',
   });
   const [photo, setPhoto] = useState(null);
@@ -45,7 +45,7 @@ const RegisterForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.field || !formData.username || !formData.password || !photo) {
+    if (!formData.name || !formData.field || !formData.mobile || !formData.password || !photo) {
       toast.error('Please fill in all fields and upload a photo');
       return;
     }
@@ -75,7 +75,7 @@ const RegisterForm = () => {
       transition={{ duration: 0.5 }}
       className="card max-w-md mx-auto mt-8"
     >
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Register</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload Your Details</h2>
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
@@ -87,7 +87,7 @@ const RegisterForm = () => {
             className="input-field"
             value={formData.name}
             onChange={handleChange}
-            placeholder="Enter your name"
+            placeholder="Eg. Maharshi Bhagat pappa_nu_name"
             required
           />
         </div>
@@ -101,21 +101,21 @@ const RegisterForm = () => {
             className="input-field"
             value={formData.field}
             onChange={handleChange}
-            placeholder="Enter your field (e.g. Engineering, Art)"
+            placeholder="Eg. Computer 3rd Year BVM"
             required
           />
         </div>
 
         <div>
-          <label htmlFor="username" className="form-label">Username</label>
+          <label htmlFor="mobile" className="form-label">Mobile No</label>
           <input
-            id="username"
-            name="username"
+            id="mobile"
+            name="mobile"
             type="text"
             className="input-field"
-            value={formData.username}
+            value={formData.mobile}
             onChange={handleChange}
-            placeholder="Choose a username"
+            placeholder="Eg. 9638631366"
             required
           />
         </div>
@@ -129,13 +129,13 @@ const RegisterForm = () => {
             className="input-field"
             value={formData.password}
             onChange={handleChange}
-            placeholder="Choose a password"
+            placeholder="No one cares"
             required
           />
         </div>
 
         <div>
-          <label className="form-label">Photo</label>
+          <label className="form-label">Photo (Will be display of Projector)</label>
           <div className="flex items-center space-x-4">
             <label className="block">
               <span className="sr-only">Choose photo</span>
@@ -164,7 +164,7 @@ const RegisterForm = () => {
           disabled={loading}
           className={`btn btn-primary w-full ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
         >
-          {loading ? 'Registering...' : 'Register'}
+          {loading ? 'Submitting...' : 'SUBMIT'}
         </button>
       </form>
     </motion.div>

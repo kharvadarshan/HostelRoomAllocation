@@ -10,7 +10,7 @@ import {
   updatePhoto, 
   deletePhoto,
   getUserProfile
-} from '../store/slices/authSlice';
+} from '../store/slices/authSlice.js';
 
 const UserDashboard = () => {
   const dispatch = useDispatch();
