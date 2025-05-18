@@ -6,7 +6,7 @@ export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axios.get('http://localhost:5000/api/users');
+      const { data } = await axios.get(`${import.meta.env.VITE_APP_URL}/api/users`);
       return data;
     } catch (error) {
       return rejectWithValue(

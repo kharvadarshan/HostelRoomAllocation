@@ -15,6 +15,7 @@ const generateToken = (id) => {
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
   const { name, field, mobile, password } = req.body;
+  console.log("Body : ", req.body);
 
   if (!name || !field || !mobile || !password || !req.file) {
     res.status(400);
@@ -26,7 +27,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (userExists) {
     res.status(400);
-    throw new Error('Username already exists');
+    throw new Error('mobile already exists');
   }
 
   // Upload image to cloudinary
