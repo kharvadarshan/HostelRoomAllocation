@@ -1,5 +1,7 @@
 import Room from '../models/roomModel.js'
 import User from '../models/userModel.js'
+import mongoose from 'mongoose'
+
 const CreateRoom =async(req,res)=>{
     try{
          const { roomNo,capacity}=req.body;
@@ -32,10 +34,14 @@ const CreateRoom =async(req,res)=>{
 
 const AllocatePerson = async(req,res)=>{
     try{
-        const {name,field, roomNo,photo} = req.body;
-        if (!roomNo || !name || !field || !photo) {
-            return res.status(400).json({ message: 'Room number, name, field, and photo are required' });
+        const {newId,roomNo} = req.body;
+
+        if (!roomNo || !newId) {
+            return res.status(400).json({ message: 'Room number and user id are required' });
         }
+        const id = new mongoose.Types.ObjectId(newId);
+
+        
         const room = await Room.findOne({roomNo:roomNo});
         console.log(room);
         if(!room)
@@ -57,18 +63,17 @@ const AllocatePerson = async(req,res)=>{
         const updatedRoom = await Room.findOneAndUpdate(
             { roomNo: roomNo },
             {
-                $push: { allocatedPersons: { name, field, photo } },
+                $push: { allocatedPersons: id },
             },
             { new: true } 
         );
-
         
         if (!updatedRoom) {
             return res.status(404).json({ ok: false, message: "Room not found." });
         }
 
-        const updateUser = await User.findOneAndUpdate(
-            { name:name },
+        const updateUser = await User.findByIdAndUpdate(
+            id ,
             {
                 $set:{room:roomNo}
             },{ new: true }
@@ -81,7 +86,7 @@ const AllocatePerson = async(req,res)=>{
         }
         
             res.status(200).json({
-                ok:true,
+            ok:true,
             message: 'Person allocated to room successfully',
             room: updatedRoom
             });
@@ -93,4 +98,58 @@ const AllocatePerson = async(req,res)=>{
     }
 }
 
-export { CreateRoom,AllocatePerson};
+
+const GetRoomById = async(req,res)=>{
+
+    try
+    {
+          const {id}=req.params;
+          const newId = new mongoose.Types.ObjectId(id);
+          const result = await Room.findById(newId);
+
+          if(!result)
+          {
+            return res.status(400).json({ok:false,message:"Room not found."})
+          }
+           return res.status(201).json({ok:true,room:result});
+
+    }catch(error)
+    {
+        console.error('Error getting room by id', error);
+        res.status(500).json({ message: 'Server error while getting room by id' });
+    }
+} 
+
+
+const GetAllRoom = async(req,res)=>{
+    try{
+        const { floor} = req.query;
+   
+         let allrooms= await Room.find({});
+
+
+        if(floor)
+        {
+             const floorStr = String(floor);
+             allrooms = allrooms.filter(room =>{
+                if(!isNaN(room.roomNo))
+                {
+                    return room.roomNo.startsWith(floorStr);
+                }
+                return false;
+             })
+        }
+
+        if(!allrooms || allrooms.length === 0)
+        {
+            return res.status(404).json({ok:false,message:"No rooms found."});
+        }
+       
+        return res.status(201).json({ok:true,message:"all rooms",rooms:allrooms});
+    }catch(error)
+    {
+        return res.status(500).json({ message: "Server error", error });
+    }
+}
+
+export { CreateRoom,AllocatePerson,GetRoomById,GetAllRoom};

@@ -1,8 +1,12 @@
 import express from 'express'
 const router = express.Router();
-import {CreateRoom,AllocatePerson} from  '../controllers/roomController.js'
+import {CreateRoom,AllocatePerson,GetRoomById,GetAllRoom} from  '../controllers/roomController.js'
 
-router.post('/create-room',CreateRoom);
-router.post('/allocate-person',AllocatePerson);
+
+router.post('/',CreateRoom);
+router.post('/user',AllocatePerson);
+router.get('/',GetAllRoom);
+router.get('/get-roombyid/:id',GetRoomById);
+
 
 export default  router;
