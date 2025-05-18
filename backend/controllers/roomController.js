@@ -152,4 +152,76 @@ const GetAllRoom = async(req,res)=>{
     }
 }
 
-export { CreateRoom,AllocatePerson,GetRoomById,GetAllRoom};
+
+
+
+const DeAllocateUser=async(req,res)=>{
+    try
+    {
+           const {roomId , userId} = req.body;
+
+           const uid= new mongoose.Types.ObjectId(userId);
+           const rid = new mongoose.Types.ObjectId(roomId);
+
+           const room = await Room.findById(rid);
+
+           if(!room)
+           {
+            return res.status(404).json({message:"Room not found."});
+           }
+            
+           const isPersonInRoom = room.allocatedPersons.includes(uid);
+
+           if(!isPersonInRoom){
+            return res.status(400).json({message:'User is not allocated to this room.'});
+           }
+
+           const updatedRoom = await Room.findByIdAndUpdate(
+             roomId,
+             {
+                $pull:{allocatedPersons:uid}
+             },
+             {new :true}
+           );
+
+           if(updatedRoom.modifiedCount <= 0)
+           {
+             return res.status(404).json({ ok: false, message: "Room not found during update." });
+           }
+
+           const user  = await User.findById(uid);
+
+           if(!user )
+           {
+                return res.status(404).json({message:"User not found."});
+           }
+
+           const updatedUser =  await User.findByIdAndUpdate(
+            uid,
+            {
+                $unset:{room:""}
+            },
+            { new: true }
+           );
+
+           if(updatedUser.modifiedCount <= 0)
+           {
+               return res.status(404).json({ ok: false, message: "User not found during update." });
+           }
+
+        
+            return res.status(201).json({
+            ok: true,
+            message: 'Person deallocated from room successfully',
+            room: updatedRoom
+        });
+
+
+    }catch(error)
+    {
+         console.error('Error deallocating person', error);
+        res.status(500).json({ message: 'Server error while deallocating person' });
+    }
+}
+
+export { CreateRoom,AllocatePerson,GetRoomById,GetAllRoom,DeAllocateUser};
