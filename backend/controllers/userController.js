@@ -73,6 +73,8 @@ const getUsers = asyncHandler(async (req, res) => {
 // @route   GET /api/users/:id
 // @access  Private/Admin
 const getUserById = asyncHandler(async (req, res) => {
+
+
   const user = await User.findById(req.params.id).select("-password");
 
   if (user) {
@@ -88,29 +90,29 @@ const getUserById = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 const updateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
+  
 
   if (user) {
     user.name = req.body.name || user.name;
     user.field = req.body.field || user.field;
     user.role = req.body.role || user.role;
+    user.group = req.body.group || user.group;
+    user.level = req.body.level || user.level;
 
-    if (req.body.password) {
-      user.password = req.body.password;
-    }
-
+   
     // If there's a new photo upload
-    if (req.file) {
-      // Delete the previous image from cloudinary
-      await cloudinary.uploader.destroy(user.cloudinaryId);
+    // if (req.file) {
+    //   // Delete the previous image from cloudinary
+    //   await cloudinary.uploader.destroy(user.cloudinaryId);
 
-      // Upload new image
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "user_photos",
-      });
+    //   // Upload new image
+    //   const result = await cloudinary.uploader.upload(req.file.path, {
+    //     folder: "user_photos",
+    //   });
 
-      user.photo = result.secure_url;
-      user.cloudinaryId = result.public_id;
-    }
+    //   user.photo = result.secure_url;
+    //   user.cloudinaryId = result.public_id;
+    // }
 
     const updatedUser = await user.save();
 
@@ -121,7 +123,10 @@ const updateUser = asyncHandler(async (req, res) => {
       field: updatedUser.field,
       photo: updatedUser.photo,
       role: updatedUser.role,
+      level:updatedUser.level,
+      group:updatedUser.group,
     });
+
   } else {
     res.status(404);
     throw new Error("User not found");
@@ -233,7 +238,7 @@ const getUnallocatedUsers = async (req, res) => {
     }
 
     const users = await User.find(query);
-    
+
     res.status(200).json({
       ok: true,
       users,
@@ -246,6 +251,8 @@ const getUnallocatedUsers = async (req, res) => {
     });
   }
 };
+
+
 
 export {
   registerUser,
