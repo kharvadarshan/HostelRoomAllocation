@@ -1,12 +1,12 @@
-import asyncHandler from 'express-async-handler';
-import User from '../models/userModel.js';
-import cloudinary from '../config/cloudinary.js';
-import jwt from 'jsonwebtoken';
+import asyncHandler from "express-async-handler";
+import User from "../models/userModel.js";
+import cloudinary from "../config/cloudinary.js";
+import jwt from "jsonwebtoken";
 
 // Generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
+    expiresIn: "30d",
   });
 };
 
@@ -19,7 +19,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (!name || !field || !mobile || !password || !req.file) {
     res.status(400);
-    throw new Error('Please fill in all fields and upload a photo');
+    throw new Error("Please fill in all fields and upload a photo");
   }
 
   // Check if user exists
@@ -27,12 +27,12 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (userExists) {
     res.status(400);
-    throw new Error('mobile already exists');
+    throw new Error("mobile already exists");
   }
 
   // Upload image to cloudinary
   const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: 'user_photos',
+    folder: "user_photos",
   });
 
   const user = await User.create({
@@ -42,7 +42,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password,
     photo: result.secure_url,
     cloudinaryId: result.public_id,
-    role: 'user', // Default role
+    role: "user", // Default role
   });
 
   if (user) {
@@ -57,7 +57,7 @@ const registerUser = asyncHandler(async (req, res) => {
     });
   } else {
     res.status(400);
-    throw new Error('Invalid user data');
+    throw new Error("Invalid user data");
   }
 });
 
@@ -65,7 +65,7 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   GET /api/users
 // @access  Private/Admin
 const getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({}).select('-password');
+  const users = await User.find({}).select("-password");
   res.json(users);
 });
 
@@ -73,13 +73,13 @@ const getUsers = asyncHandler(async (req, res) => {
 // @route   GET /api/users/:id
 // @access  Private/Admin
 const getUserById = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select('-password');
+  const user = await User.findById(req.params.id).select("-password");
 
   if (user) {
     res.json(user);
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
 
@@ -93,7 +93,7 @@ const updateUser = asyncHandler(async (req, res) => {
     user.name = req.body.name || user.name;
     user.field = req.body.field || user.field;
     user.role = req.body.role || user.role;
-    
+
     if (req.body.password) {
       user.password = req.body.password;
     }
@@ -102,12 +102,12 @@ const updateUser = asyncHandler(async (req, res) => {
     if (req.file) {
       // Delete the previous image from cloudinary
       await cloudinary.uploader.destroy(user.cloudinaryId);
-      
+
       // Upload new image
       const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'user_photos',
+        folder: "user_photos",
       });
-      
+
       user.photo = result.secure_url;
       user.cloudinaryId = result.public_id;
     }
@@ -124,7 +124,7 @@ const updateUser = asyncHandler(async (req, res) => {
     });
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
 
@@ -137,12 +137,12 @@ const deleteUser = asyncHandler(async (req, res) => {
   if (user) {
     // Delete image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-    
+
     await user.deleteOne();
-    res.json({ message: 'User removed' });
+    res.json({ message: "User removed" });
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
 
@@ -155,12 +155,12 @@ const updateUserPhoto = asyncHandler(async (req, res) => {
   if (user && req.file) {
     // Delete the previous image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-    
+
     // Upload new image
     const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'user_photos',
+      folder: "user_photos",
     });
-    
+
     user.photo = result.secure_url;
     user.cloudinaryId = result.public_id;
 
@@ -168,17 +168,17 @@ const updateUserPhoto = asyncHandler(async (req, res) => {
 
     res.json({
       photo: updatedUser.photo,
-      message: 'Photo updated successfully',
+      message: "Photo updated successfully",
     });
   } else if (!req.file) {
     res.status(400);
-    throw new Error('Please upload a photo');
+    throw new Error("Please upload a photo");
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
-  
+
 // @desc    Delete profile photo
 // @route   DELETE /api/users/photo
 // @access  Private
@@ -188,50 +188,72 @@ const deleteUserPhoto = asyncHandler(async (req, res) => {
   if (user) {
     // Delete the image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-    
+
     // Set a default photo
     const result = await cloudinary.uploader.upload(
-      'https://res.cloudinary.com/demo/image/upload/v1612228187/samples/people/default-profile.jpg', 
-      { folder: 'user_photos' }
+      "https://res.cloudinary.com/demo/image/upload/v1612228187/samples/people/default-profile.jpg",
+      { folder: "user_photos" }
     );
-    
+
     user.photo = result.secure_url;
     user.cloudinaryId = result.public_id;
-    
+
     await user.save();
-    
-    res.json({ message: 'Photo removed and set to default' });
+
+    res.json({ message: "Photo removed and set to default" });
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
 
 // Get Unallocated Users
 const getUnallocatedUsers = async (req, res) => {
   try {
-    const users = await User.find({ room: { $in: ["", null] } });
+    const { group, level } = req.query;
+
+    // const users = await User.find({
+    //   $and:[
+    //    { room: { $in: ["", null] }},
+    //    { level: {$eq:level}},
+    //    { group: {$eq:group}}
+    // ]}  );
+
+    const query = {
+      room: { $in: ["", null] },
+    };
+
+    if (level) {
+      query.level = level;
+    }
+
+    // Add `group` filter only if it's provided
+    if (group) {
+      query.group = group;
+    }
+
+    const users = await User.find(query);
     
     res.status(200).json({
       ok: true,
-      users
+      users,
     });
   } catch (error) {
-    console.error('Error fetching unallocated users:', error);
-    res.status(500).json({ 
+    console.error("Error fetching unallocated users:", error);
+    res.status(500).json({
       ok: false,
-      message: 'Server error while fetching unallocated users' 
+      message: "Server error while fetching unallocated users",
     });
   }
 };
 
-export { 
-  registerUser, 
-  getUsers, 
-  getUserById, 
-  updateUser, 
-  deleteUser, 
-  updateUserPhoto, 
+export {
+  registerUser,
+  getUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  updateUserPhoto,
   deleteUserPhoto,
-  getUnallocatedUsers
-}; 
+  getUnallocatedUsers,
+};

@@ -33,10 +33,16 @@ const userSchema = mongoose.Schema(
        default:"",
        required:false
     },
+    level:{
+      type:String,
+      required:false,
+      enum:['A','B','C'],
+      default:'C'
+    },
     group: {
       type: String,
-      enum: ['a', 'b', 'c'],
-      default: 'a',
+      enum: ['New A-B', 'A. M. Naik', 'ADIT','GCET'],
+      default: 'New A-B',
     },
     role: {
       type: String,

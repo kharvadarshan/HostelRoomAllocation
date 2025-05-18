@@ -26,7 +26,11 @@ router.route('/photo')
 router.route('/')
   .get(protect, admin, getUsers);
 
+
+
 router.get('/unallocated', protect, admin, getUnallocatedUsers);
+
+
 
 router.route('/:id')
   .get(protect, admin, getUserById)
