@@ -16,11 +16,20 @@ import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
+import { setupInterceptors, initializeAuth } from './api/setupInterceptors';
+
+// Set up API interceptors and auth
+setupInterceptors();
 
 function App() {
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
   const [showSplash, setShowSplash] = useState(true);
+
+  // Initialize auth on app start
+  useEffect(() => {
+    initializeAuth();
+  }, []);
 
   // Set auth token on app load
   useEffect(() => {

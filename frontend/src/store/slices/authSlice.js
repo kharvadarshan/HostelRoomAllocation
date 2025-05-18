@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import api from '@/api';
 
 // Set axios defaults
 export const setAuthToken = (token) => {
@@ -15,16 +16,18 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ mobile, password }, { rejectWithValue }) => {
     try {
-      const { data } = await axios.post(`${import.meta.env.VITE_APP_URL}/api/auth/login`, {
+      const { data } = await api.post('/auth/login', {
         mobile,
         password
       });
       
       // Set auth token in axios headers
       setAuthToken(data.token);
+      localStorage.setItem('token', data.token);
       
       return data;
     } catch (error) {
+      console.error('Login error:', error.response?.data || error.message);
       return rejectWithValue(
         error.response?.data?.message || 'Failed to login'
       );
@@ -45,7 +48,7 @@ export const register = createAsyncThunk(
         formData.append('photo', userData.photo);
       }
       
-      const { data } = await axios.post(`${import.meta.env.VITE_APP_URL}/api/users`, formData, {
+      const { data } = await api.post('/users', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data'
         }
@@ -54,9 +57,11 @@ export const register = createAsyncThunk(
       
       // Set auth token in axios headers
       setAuthToken(data.token);
+      localStorage.setItem('token', data.token);
       
       return data;
     } catch (error) {
+      console.error('Register error:', error.response?.data || error.message);
       return rejectWithValue(
         error.response?.data?.message || 'Failed to register'
       );
@@ -68,9 +73,10 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (userData, { rejectWithValue }) => {
     try {
-      const { data } = await axios.put(`${import.meta.env.VITE_APP_URL}/api/auth/profile`, userData);
+      const { data } = await api.put('/auth/profile', userData);
       return data;
     } catch (error) {
+      console.error('Update profile error:', error.response?.data || error.message);
       return rejectWithValue(
         error.response?.data?.message || 'Failed to update profile'
       );
@@ -85,12 +91,13 @@ export const updatePhoto = createAsyncThunk(
       const formData = new FormData();
       formData.append('photo', photo);
       
-      const { data } = await axios.put(`${import.meta.env.VITE_APP_URL}/api/users/photo`, formData, {
+      const { data } = await api.put('/users/photo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       return data;
     } catch (error) {
+      console.error('Update photo error:', error.response?.data || error.message);
       return rejectWithValue(
         error.response?.data?.message || 'Failed to update photo'
       );
@@ -102,12 +109,13 @@ export const deletePhoto = createAsyncThunk(
   'auth/deletePhoto',
   async (_, { rejectWithValue, dispatch }) => {
     try {
-      await axios.delete(`${import.meta.env.VITE_APP_URL}/api/users/photo`);
+      await api.delete('/users/photo');
       
       // Refresh the user profile to get updated data
-      const { data } = await axios.get(`${import.meta.env.VITE_APP_URL}/api/auth/profile`);
+      const { data } = await api.get('/auth/profile');
       return data;
     } catch (error) {
+      console.error('Delete photo error:', error.response?.data || error.message);
       return rejectWithValue(
         error.response?.data?.message || 'Failed to delete photo'
       );
@@ -119,9 +127,10 @@ export const getUserProfile = createAsyncThunk(
   'auth/getUserProfile',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_APP_URL}/api/auth/profile`);
+      const { data } = await api.get('/auth/profile');
       return data;
     } catch (error) {
+      console.error('Get profile error:', error.response?.data || error.message);
       return rejectWithValue(
         error.response?.data?.message || 'Failed to get user profile'
       );

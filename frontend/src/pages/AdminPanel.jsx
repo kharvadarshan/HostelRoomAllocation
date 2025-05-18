@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { 
@@ -21,7 +22,9 @@ import {
   FiX, 
   FiSearch,
   FiFilter,
-  FiUser
+  FiUser,
+  FiHome,
+  FiUsers
 } from 'react-icons/fi';
 
 const AdminPanel = () => {
@@ -93,6 +96,45 @@ const AdminPanel = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Admin Navigation Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <Link to="/rooms">
+          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-primary-200 hover:border-primary-400">
+            <CardContent className="p-6 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center mb-4">
+                <FiHome className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+              </div>
+              <CardTitle className="mb-2">Room Management</CardTitle>
+              <p className="text-gray-600 dark:text-gray-400">Manage hostel rooms, add, edit, and view room allocations</p>
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link to="/room-allocation">
+          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-secondary-200 hover:border-secondary-400">
+            <CardContent className="p-6 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-secondary-100 dark:bg-secondary-900 rounded-full flex items-center justify-center mb-4">
+                <FiUsers className="w-8 h-8 text-secondary-600 dark:text-secondary-400" />
+              </div>
+              <CardTitle className="mb-2">Room Allocation</CardTitle>
+              <p className="text-gray-600 dark:text-gray-400">Randomly allocate users to rooms with an engaging selection process</p>
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link to="/admin">
+          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-gray-200 hover:border-gray-400">
+            <CardContent className="p-6 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-900 rounded-full flex items-center justify-center mb-4">
+                <FiUser className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+              </div>
+              <CardTitle className="mb-2">User Management</CardTitle>
+              <p className="text-gray-600 dark:text-gray-400">Manage users, view details, promote to admin, or remove users</p>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+      
       <AnimatePresence>
         {showFullPhoto && selectedUser && (
           <motion.div

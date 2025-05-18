@@ -18,7 +18,9 @@ import {
   FiUser, 
   FiLogOut, 
   FiSettings,
-  FiShield
+  FiShield,
+  FiHome,
+  FiUsers
 } from 'react-icons/fi';
 
 const Navbar = () => {
@@ -135,6 +137,28 @@ const Navbar = () => {
                         >
                           <FiShield className="mr-2" />
                           Admin Panel
+                        </Link>
+                      )}
+                      
+                      {isAdmin && (
+                        <Link 
+                          to="/rooms" 
+                          className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          <FiHome className="mr-2" />
+                          Room Management
+                        </Link>
+                      )}
+                      
+                      {isAdmin && (
+                        <Link 
+                          to="/room-allocation" 
+                          className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          <FiUsers className="mr-2" />
+                          Room Allocation
                         </Link>
                       )}
                       
@@ -256,6 +280,28 @@ const Navbar = () => {
                     >
                       <FiShield className="mr-2" />
                       Admin Panel
+                    </Link>
+                  )}
+                  
+                  {isAdmin && (
+                    <Link 
+                      to="/rooms"
+                      className="block py-2 px-3 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                      onClick={toggleMobileMenu}
+                    >
+                      <FiHome className="mr-2" />
+                      Room Management
+                    </Link>
+                  )}
+                  
+                  {isAdmin && (
+                    <Link 
+                      to="/room-allocation"
+                      className="block py-2 px-3 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                      onClick={toggleMobileMenu}
+                    >
+                      <FiUsers className="mr-2" />
+                      Room Allocation
                     </Link>
                   )}
                   
