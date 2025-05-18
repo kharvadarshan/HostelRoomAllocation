@@ -1,20 +1,20 @@
 import mongoose from 'mongoose'
 
-const personSchema = mongoose.Schema({
+// const personSchema = mongoose.Schema({
    
-   name: {
-      type: String,
-      required: true,
-    },
-    field: {
-      type: String,
-      required: true, 
-    },
-    photo: {
-      type: String,
-      required: true, 
-    },
-});
+//    name: {
+//       type: String,
+//       required: true,
+//     },
+//     field: {
+//       type: String,
+//       required: true, 
+//     },
+//     photo: {
+//       type: String,
+//       required: true, 
+//     },
+// });
 
 
 const roomSchema = mongoose.Schema({
@@ -28,7 +28,7 @@ const roomSchema = mongoose.Schema({
         required:true,
     },
     allocatedPersons:{
-        type: [personSchema],
+        type: [mongoose.Schema.Types.ObjectId],
     }
 });
 

@@ -22,7 +22,7 @@ const loginUser = asyncHandler(async (req, res) => {
     res.json({
       _id: user._id,
       name: user.name,
-      username: user.username,
+      mobile: user.mobile,
       field: user.field,
       photo: user.photo,
       role: user.role,
@@ -44,7 +44,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
     res.json({
       _id: user._id,
       name: user.name,
-      username: user.username,
+      mobile: user.mobile,
       field: user.field,
       photo: user.photo,
       role: user.role,
@@ -74,7 +74,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     res.json({
       _id: updatedUser._id,
       name: updatedUser.name,
-      username: updatedUser.username,
+      mobile: updatedUser.mobile,
       field: updatedUser.field,
       photo: updatedUser.photo,
       role: updatedUser.role,
