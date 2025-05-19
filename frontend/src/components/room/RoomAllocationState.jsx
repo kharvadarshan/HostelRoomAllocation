@@ -347,7 +347,6 @@ const useRoomAllocationState = () => {
     setSelectedUser(user);
     setSelectionComplete(true);
     setShowUserPopup(true);
-    setShowConfetti(true);
     setIsSelecting(false);
     
     console.log('State updated after user selection');
@@ -389,7 +388,7 @@ const useRoomAllocationState = () => {
     allocationAttemptedForUser.current.clear();
     hasSelectionOccurred.current = false;
     
-    // Start the selection process
+    // Start the selection process - now showing card grid instead of random selection
     setIsSelecting(true);
     setSelectionComplete(false);
     setSelectedUser(null);

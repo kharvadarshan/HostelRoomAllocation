@@ -186,19 +186,38 @@ const RoomManagement = () => {
 
   const handleDeAllocateUser = async (roomId, userId) => {
     try {
+      // Optimistically update UI
+      const updatedRooms = rooms.map(room => {
+        if (room._id === roomId) {
+          return {
+            ...room,
+            allocatedPersons: room.allocatedPersons.filter(id => id !== userId)
+          };
+        }
+        return room;
+      });
+      
+      // Update state immediately for responsive UI
+      setRooms(updatedRooms);
+      
+      // Make API call
       const { data } = await api.delete('/rooms', {
         data: { roomId, userId }
       });
       
       if (data.ok) {
         toast.success('User deallocated successfully');
-        fetchRooms();
+        // No need to call fetchRooms() since we've already updated the UI
       } else {
         toast.error(data.message || 'Failed to deallocate user');
+        // Revert optimistic update on failure
+        fetchRooms();
       }
     } catch (error) {
       console.error('Error deallocating user:', error);
       toast.error(error.response?.data?.message || 'Failed to deallocate user');
+      // Revert optimistic update on failure
+      fetchRooms();
     }
   };
 

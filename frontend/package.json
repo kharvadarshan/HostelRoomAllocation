@@ -12,8 +12,10 @@
   "dependencies": {
     "@fontsource/inter": "^5.2.5",
     "@reduxjs/toolkit": "^2.0.0",
+    "@webcomponents/webcomponentsjs": "^2.8.0",
     "aceternity-ui": "^0.2.2",
     "axios": "^1.6.0",
+    "bharat-ui": "^1.0.36",
     "clsx": "^2.1.1",
     "framer-motion": "^12.12.1",
     "motion": "^12.12.1",
@@ -27,7 +29,10 @@
     "react-redux": "^9.0.0",
     "react-roulette-pro": "^3.2.2",
     "react-router": "^7.6.0",
+    "react-scratchcard": "^1.1.2",
+    "react-scratchcard-v2": "^1.1.1",
     "redux-persist": "^6.0.0",
+    "rn-scratch-card": "^1.2.3",
     "simplex-noise": "^4.0.3",
     "tailwind-merge": "^3.3.0",
     "tailwindcss-animate": "^1.0.7"
