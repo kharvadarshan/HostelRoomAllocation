@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { FiChevronRight, FiUsers } from 'react-icons/fi';
 import Confetti from 'react-confetti';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme.js';
 import Roulette from 'react-roulette-pro';
 import 'react-roulette-pro/dist/index.css';
 import React from 'react';

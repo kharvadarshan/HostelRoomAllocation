@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { FiUsers } from 'react-icons/fi';
 import Roulette from 'react-roulette-pro';
 import 'react-roulette-pro/dist/index.css';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme.js';
 import useAudio from '../../hooks/useAudio';
 import { toast } from 'react-hot-toast';
 
@@ -34,10 +33,14 @@ const UserSelectionEnhanced = ({
       
       selectionInProgress.current = true;
       
+      // Create a ref to track if selection has been made by handlePrizeDetermined
+      const selectionMade = { current: false };
+      
       // Get random prize index
       const randomIndex = getRandomIndex(filteredUsers);
+      console.log("--------------------------Random index:", { randomIndex });
       setPrizeIndex(randomIndex);
-      console.log('Selected random prize index:', randomIndex, 'for user:', filteredUsers[randomIndex]?.name);
+      console.log('Selected random prize index:', randomIndex, 'for user:', filteredUsers[randomIndex].name);
       
       // Prepare the roulette data
       const data = prepareRouletteData(filteredUsers);
@@ -56,25 +59,30 @@ const UserSelectionEnhanced = ({
         setRouletteStart(true);
       }, 100);
       
-      // Schedule selection completion
+      // Schedule selection completion (fallback in case handlePrizeDetermined doesn't fire)
       setTimeout(() => {
-        if (filteredUsers[randomIndex]) {
-          console.log('Selection timeout triggered - selecting user:', filteredUsers[randomIndex].name);
+        // Skip if selection was already made by handlePrizeDetermined
+        if (selectionInProgress.current && !selectionComplete) {
+          console.log('Fallback timeout triggered - handlePrizeDetermined may not have fired');
           
-          // Stop spinning audio
-          audio.stop();
+          if (filteredUsers[randomIndex]) {
+            console.log('Selection timeout triggered - selecting user:', filteredUsers[randomIndex].name);
+            
+            // Stop spinning audio
+            audio.stop();
+            
+            // Play success sound
+            audio.play('/assets/sounds/win-sound.mp3', { volume: 0.5 });
+            
+            // Show the selected user
+            onUserSelected(filteredUsers[randomIndex]);
+          }
           
-          // Play success sound
-          audio.play('/assets/sounds/win-sound.mp3', { volume: 0.5 });
-          
-          // Show the selected user
-          onUserSelected(filteredUsers[randomIndex]);
+          // Reset state
+          setRouletteStart(false);
+          selectionInProgress.current = false;
         }
-        
-        // Reset state
-        setRouletteStart(false);
-        selectionInProgress.current = false;
-      }, 6000); // 6 seconds to allow the 5-second spin to complete
+      }, 8000); // Extended to 8 seconds to ensure the roulette has time to complete
     } else if (!isSelecting) {
       // Reset when selection is cancelled or completed
       setRouletteStart(false);
@@ -133,6 +141,28 @@ const UserSelectionEnhanced = ({
   // Handle prize determined event
   const handlePrizeDetermined = () => {
     console.log('Prize determined from roulette component!', { prizeIndex });
+    
+    // If we have a valid prize index and users
+    if (prizeIndex >= 0 && filteredUsers && filteredUsers.length > 0 && prizeIndex < filteredUsers.length) {
+      const selectedUser = filteredUsers[prizeIndex];
+      console.log('Winner selected by roulette:', selectedUser.name);
+      
+      // Stop spinning audio
+      audio.stop();
+      
+      // Play success sound
+      audio.play('/assets/sounds/win-sound.mp3', { volume: 0.5 });
+      
+      // Show full screen animation with selected user (with a slight delay for effect)
+      setTimeout(() => {
+        // Show the selected user with confetti animation
+        onUserSelected(selectedUser);
+        
+        // Reset roulette state
+        setRouletteStart(false);
+        selectionInProgress.current = false;
+      }, 500);
+    }
   };
 
   // Roulette settings
@@ -148,8 +178,8 @@ const UserSelectionEnhanced = ({
     options: {
       stopInCenter: true,
       withoutAnimation: false,
-      soundWhileSpinning: false,
-      spinningTime: 5, // 5 seconds spin
+      soundWhileSpinning: false, // Disable built-in sounds as we use our own custom audio
+      spinningTime: 7, // Keep at 7 seconds to match our timeout
       generateId: true,
     },
     designOptions: {
@@ -158,7 +188,7 @@ const UserSelectionEnhanced = ({
       prizeItemWidth: 90,
       prizeItemHeight: 90,
     },
-    spinningTime: 5,
+    spinningTime: 7,
     onPrizeDetermined: handlePrizeDetermined,
   };
   
@@ -235,6 +265,12 @@ const UserSelectionEnhanced = ({
               style={rouletteStyles}
             />
           </div>
+          
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-500">
+              The wheel will stop automatically after spinning...
+            </p>
+          </div>
         </div>
       )}
       
@@ -256,6 +292,9 @@ const UserSelectionEnhanced = ({
       
       <p className="text-sm text-gray-500 mt-3">
         {filteredUsers.length} unallocated {filteredUsers.length === 1 ? 'user' : 'users'} available
+        {currentRoom?.capacity && currentRoom?.allocatedPersons && (
+          <span> • Room capacity: {currentRoom.allocatedPersons.length}/{currentRoom.capacity}</span>
+        )}
       </p>
     </div>
   );

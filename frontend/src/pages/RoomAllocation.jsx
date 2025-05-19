@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, CardHeader, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { FiRefreshCw } from 'react-icons/fi';
-import Confetti from 'react-confetti';
 
 // Import components
 import UserSelectionModal from '../components/room/UserSelectionModal';
@@ -33,9 +32,7 @@ const RoomAllocation = () => {
     isSelecting,
     selectionComplete,
     selectedUser,
-    showConfetti,
     showUserPopup,
-    windowSize,
     
     // Methods
     setSelectedGroup,
@@ -53,17 +50,6 @@ const RoomAllocation = () => {
 
   return (
     <div className="container-fluid px-4 py-8 max-w-full">
-      {/* Confetti effect when user is selected */}
-      {showConfetti && (
-        <Confetti
-          width={windowSize.width}
-          height={windowSize.height}
-          recycle={false}
-          numberOfPieces={300}
-          tweenDuration={6000}
-        />
-      )}
-      
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left sidebar - Floor and filters */}
         <div className="md:w-1/5">

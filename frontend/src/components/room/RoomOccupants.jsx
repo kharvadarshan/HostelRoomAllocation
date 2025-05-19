@@ -1,6 +1,6 @@
 import { FiUser } from 'react-icons/fi';
 
-const RoomOccupants = ({ currentRoom, allocatedUsersMap, allocatedUsers }) => {
+const RoomOccupants = ({ currentRoom, allocatedUsersMap = {} }) => {
   if (!currentRoom) return null;
 
   return (
@@ -11,8 +11,8 @@ const RoomOccupants = ({ currentRoom, allocatedUsersMap, allocatedUsers }) => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {currentRoom.allocatedPersons.map(personId => {
-            // Get user from allocatedUsersMap first, then fallback to allocatedUsers
-            const user = allocatedUsersMap[personId] || allocatedUsers.find(u => u._id === personId);
+            // Get user from allocatedUsersMap
+            const user = allocatedUsersMap[personId];
             return (
               <div 
                 key={personId} 
