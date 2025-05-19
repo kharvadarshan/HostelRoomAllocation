@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { FiUsers } from 'react-icons/fi';
-import Roulette from 'react-roulette-pro';
+import RoulettePro from 'react-roulette-pro';
 import 'react-roulette-pro/dist/index.css';
 import { useTheme } from '@/hooks/useTheme.js';
 import useAudio from '../../hooks/useAudio';
@@ -22,30 +23,37 @@ const UserSelectionEnhanced = ({
   const { isDarkMode } = useTheme();
   const audio = useAudio();
   const selectionInProgress = useRef(false);
+  const selectionComplete_ref = useRef(false);
 
   // Set up roulette data when selection starts
   useEffect(() => {
-    console.log("Selection state:", { isSelecting, selectionComplete, filteredUsersCount: filteredUsers?.length });
     
     if (isSelecting && !selectionComplete && filteredUsers.length > 0) {
       // Don't start if already in progress
       if (selectionInProgress.current) return;
       
+      // Reset selection state
       selectionInProgress.current = true;
-      
-      // Create a ref to track if selection has been made by handlePrizeDetermined
-      const selectionMade = { current: false };
+      selectionComplete_ref.current = false;
       
       // Get random prize index
       const randomIndex = getRandomIndex(filteredUsers);
       console.log("--------------------------Random index:", { randomIndex });
       setPrizeIndex(randomIndex);
-      console.log('Selected random prize index:', randomIndex, 'for user:', filteredUsers[randomIndex].name);
-      
+
       // Prepare the roulette data
       const data = prepareRouletteData(filteredUsers);
+      
+      // Make sure we have valid data
+      if (!data.length) {
+        console.error('Failed to prepare roulette data');
+        toast.error('Error preparing selection wheel');
+        setIsSelecting(false);
+        selectionInProgress.current = false;
+        return;
+      }
+      
       setRouletteData(data);
-      console.log('Prepared roulette data with', data.length, 'items');
       
       // Play spinning sound
       audio.play('/assets/sounds/wheel-spinning.mp3', {
@@ -55,18 +63,17 @@ const UserSelectionEnhanced = ({
       
       // Start roulette after a small delay
       setTimeout(() => {
-        console.log('Starting roulette animation');
         setRouletteStart(true);
       }, 100);
       
-      // Schedule selection completion (fallback in case handlePrizeDetermined doesn't fire)
+      // Schedule selection completion (fallback in case handlePrizeDefined doesn't fire)
       setTimeout(() => {
-        // Skip if selection was already made by handlePrizeDetermined
-        if (selectionInProgress.current && !selectionComplete) {
-          console.log('Fallback timeout triggered - handlePrizeDetermined may not have fired');
+        // Skip if selection was already made by handlePrizeDefined
+        if (selectionInProgress.current && !selectionComplete_ref.current) {
+          console.log('Fallback timeout triggered - handlePrizeDefined may not have fired');
           
           if (filteredUsers[randomIndex]) {
-            console.log('Selection timeout triggered - selecting user:', filteredUsers[randomIndex].name);
+            console.log('Selection timeout triggered - selecting user:', filteredUsers[randomIndex]?.name);
             
             // Stop spinning audio
             audio.stop();
@@ -81,12 +88,15 @@ const UserSelectionEnhanced = ({
           // Reset state
           setRouletteStart(false);
           selectionInProgress.current = false;
+        } else {
+          console.log('Skipping fallback timeout - selection already complete');
         }
       }, 8000); // Extended to 8 seconds to ensure the roulette has time to complete
     } else if (!isSelecting) {
       // Reset when selection is cancelled or completed
       setRouletteStart(false);
       selectionInProgress.current = false;
+      selectionComplete_ref.current = false;
     }
   }, [isSelecting, selectionComplete, filteredUsers, audio, onUserSelected]);
 
@@ -109,9 +119,14 @@ const UserSelectionEnhanced = ({
   const prepareRouletteData = (users) => {
     if (!users || users.length === 0) return [];
     
+    // Generate a unique ID
+    const generateId = () => {
+      return `${Date.now().toString(36)}-${Math.random().toString(36).substring(2)}`;
+    };
+    
     // Ensure we have at least 10 prizes for a good spin
     let data = users.map((user) => ({
-      id: user._id,
+      id: user._id || generateId(),
       image: user.photo || 'https://via.placeholder.com/80',
       text: user.name,
       userData: user
@@ -139,13 +154,14 @@ const UserSelectionEnhanced = ({
   };
 
   // Handle prize determined event
-  const handlePrizeDetermined = () => {
-    console.log('Prize determined from roulette component!', { prizeIndex });
+  const handlePrizeDefined = () => {
+    
+    // Mark that selection is complete to prevent the fallback timeout
+    selectionComplete_ref.current = true;
     
     // If we have a valid prize index and users
     if (prizeIndex >= 0 && filteredUsers && filteredUsers.length > 0 && prizeIndex < filteredUsers.length) {
       const selectedUser = filteredUsers[prizeIndex];
-      console.log('Winner selected by roulette:', selectedUser.name);
       
       // Stop spinning audio
       audio.stop();
@@ -167,67 +183,23 @@ const UserSelectionEnhanced = ({
 
   // Roulette settings
   const rouletteSettings = {
-    start: rouletteStart,
     prizes: rouletteData,
-    prizeIndex,
-    defaultDesignOptions: {
-      prizeShadowColor: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.2)',
-      prizeItemBackground: isDarkMode ? '#2a2a2a' : '#ffffff',
-      prizeItemTextColor: isDarkMode ? '#ffffff' : '#000000',
-    },
-    options: {
-      stopInCenter: true,
-      withoutAnimation: false,
-      soundWhileSpinning: false, // Disable built-in sounds as we use our own custom audio
-      spinningTime: 7, // Keep at 7 seconds to match our timeout
-      generateId: true,
-    },
+    prizeIndex: prizeIndex,
+    start: rouletteStart,
+    spinningTime: 7,
+    onPrizeDefined: handlePrizeDefined,
+    stopInCenter: true, 
+    soundWhileSpinning: false,
+    withoutAnimation: false,
     designOptions: {
       prizeShadowWidth: 30,
       prizeShadowOpacity: 0.3,
       prizeItemWidth: 90,
       prizeItemHeight: 90,
-    },
-    spinningTime: 7,
-    onPrizeDetermined: handlePrizeDetermined,
-  };
-  
-  // Custom styles for roulette
-  const rouletteStyles = {
-    wrapper: {
-      backgroundColor: 'transparent',
-      boxShadow: 'none',
-      width: '100%',
-      marginTop: '1rem',
-      marginBottom: '1rem',
-    },
-    prize: {
-      border: `3px solid ${isDarkMode ? '#3a86ff' : '#4361ee'}`,
-      borderRadius: '50%',
-      boxShadow: `0 0 10px ${isDarkMode ? 'rgba(61, 134, 255, 0.5)' : 'rgba(67, 97, 238, 0.5)'}`,
-      overflow: 'hidden',
-      position: 'relative',
-    },
-    prizeImage: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
-      borderRadius: '50%',
-    },
-    prizeName: {
-      position: 'absolute',
-      bottom: '-24px',
-      left: '0',
-      right: '0',
-      textAlign: 'center',
-      backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-      color: isDarkMode ? '#fff' : '#000',
-      padding: '2px 0',
-      fontSize: '10px',
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-    },
+      prizeShadowColor: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.2)',
+      prizeItemBackground: isDarkMode ? '#2a2a2a' : '#ffffff',
+      prizeItemTextColor: isDarkMode ? '#ffffff' : '#000000',
+    }
   };
 
   // Begin selection process
@@ -259,10 +231,8 @@ const UserSelectionEnhanced = ({
           </h3>
           
           <div className="max-w-2xl mx-auto">
-            <Roulette
+            <RoulettePro
               {...rouletteSettings}
-              className="custom-roulette"
-              style={rouletteStyles}
             />
           </div>
           

@@ -41,6 +41,25 @@ const AllocatePerson = async(req,res)=>{
         }
         const id = new mongoose.Types.ObjectId(newId);
 
+        // First check if user exists
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ ok: false, message: "User not found." });
+        }
+        
+        // Check if user is already allocated to a room
+        if (user.room && user.room !== "") {
+            // Remove user from current room
+            const currentRoom = await Room.findOne({ roomNo: user.room });
+            if (currentRoom) {
+                await Room.findByIdAndUpdate(
+                    currentRoom._id,
+                    {
+                        $pull: { allocatedPersons: id }
+                    }
+                );
+            }
+        }
         
         const room = await Room.findOne({roomNo:roomNo});
         console.log(room);

@@ -54,6 +54,20 @@ export const deleteUser = createAsyncThunk(
   }
 );
 
+export const updateUser = createAsyncThunk(
+  'users/updateUser',
+  async ({ id, userData }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.put(`/users/${id}`, userData);
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to update user'
+      );
+    }
+  }
+);
+
 export const promoteToAdmin = createAsyncThunk(
   'users/promoteToAdmin',
   async (id, { rejectWithValue }) => {
@@ -174,6 +188,24 @@ const userSlice = createSlice({
         state.users = state.users.filter(user => user._id !== action.payload);
       })
       .addCase(deleteUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // Update User
+      .addCase(updateUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUser.fulfilled, (state, action) => {
+        state.loading = false;
+        // Find and update the user in the users array
+        const index = state.users.findIndex(user => user._id === action.payload._id);
+        if (index !== -1) {
+          state.users[index] = action.payload;
+        }
+      })
+      .addCase(updateUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

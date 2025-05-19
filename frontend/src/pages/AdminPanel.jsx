@@ -8,7 +8,7 @@ import {
   selectUsersLoading, 
   fetchUsers, 
   deleteUser,
-  promoteToAdmin,
+  updateUser,
   setSelectedUser,
   selectSelectedUser,
   clearSelectedUser
@@ -17,15 +17,17 @@ import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { 
   FiRefreshCw, 
-  FiShield, 
   FiTrash2, 
   FiX, 
   FiSearch,
   FiFilter,
   FiUser,
   FiHome,
-  FiUsers
+  FiUsers,
+  FiEdit2
 } from 'react-icons/fi';
+import { names, levels } from '../utils/names.js';
+import api from '../api';
 
 const AdminPanel = () => {
   const dispatch = useDispatch();
@@ -33,12 +35,35 @@ const AdminPanel = () => {
   const loading = useSelector(selectUsersLoading);
   const selectedUser = useSelector(selectSelectedUser);
   const [showFullPhoto, setShowFullPhoto] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [editUserData, setEditUserData] = useState({
+    name: '',
+    field: '',
+    mobile: '',
+    group: 'New A-B',
+    level: 'C',
+    room: '',
+    role: 'user'
+  });
+  const [rooms, setRooms] = useState([]);
 
   useEffect(() => {
     dispatch(fetchUsers());
+    fetchRooms();
   }, [dispatch]);
+
+  const fetchRooms = async () => {
+    try {
+      const { data } = await api.get('/rooms');
+      if (data.ok) {
+        setRooms(data.rooms);
+      }
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    }
+  };
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
@@ -55,21 +80,6 @@ const AdminPanel = () => {
     }
   };
 
-  const handlePromoteToAdmin = async (id) => {
-    if (window.confirm('Are you sure you want to promote this user to admin?')) {
-      try {
-        const resultAction = await dispatch(promoteToAdmin(id));
-        
-        if (promoteToAdmin.fulfilled.match(resultAction)) {
-          toast.success('User promoted to admin successfully');
-        }
-      } catch (error) {
-        console.error('Error promoting user:', error);
-        toast.error('Failed to promote user to admin');
-      }
-    }
-  };
-
   const openPhotoModal = (user) => {
     dispatch(setSelectedUser(user));
     setShowFullPhoto(true);
@@ -80,6 +90,46 @@ const AdminPanel = () => {
     setTimeout(() => {
       dispatch(clearSelectedUser());
     }, 300);
+  };
+
+  const openEditModal = (user) => {
+    setEditUserData({
+      name: user.name,
+      field: user.field,
+      mobile: user.mobile,
+      group: user.group || 'New A-B',
+      level: user.level || 'C',
+      room: user.room || '',
+      role: user.role || 'user'
+    });
+    dispatch(setSelectedUser(user));
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setTimeout(() => {
+      dispatch(clearSelectedUser());
+    }, 300);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      const resultAction = await dispatch(updateUser({ 
+        id: selectedUser._id, 
+        userData: editUserData 
+      }));
+      
+      if (updateUser.fulfilled.match(resultAction)) {
+        toast.success('User updated successfully');
+        setShowEditModal(false);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Failed to update user');
+    }
   };
 
   // Filter users by search term and role
@@ -135,6 +185,7 @@ const AdminPanel = () => {
         </Link>
       </div>
       
+      {/* Photo Modal */}
       <AnimatePresence>
         {showFullPhoto && selectedUser && (
           <motion.div
@@ -174,6 +225,174 @@ const AdminPanel = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Edit User Modal */}
+      <AnimatePresence>
+        {showEditModal && selectedUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+            onClick={closeEditModal}
+          >
+            <motion.div 
+              className="relative bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-auto"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit User</h2>
+                <button
+                  onClick={closeEditModal}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4 flex justify-center">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary-500">
+                  <img 
+                    src={selectedUser.photo} 
+                    alt={selectedUser.name} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+              
+              <form onSubmit={(e) => { e.preventDefault(); handleUpdateUser(); }}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editUserData.name}
+                      onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Field
+                    </label>
+                    <input
+                      type="text"
+                      value={editUserData.field}
+                      onChange={(e) => setEditUserData({ ...editUserData, field: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Mobile
+                    </label>
+                    <input
+                      type="text"
+                      value={editUserData.mobile}
+                      onChange={(e) => setEditUserData({ ...editUserData, mobile: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Group
+                      </label>
+                      <select
+                        value={editUserData.group}
+                        onChange={(e) => setEditUserData({ ...editUserData, group: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        {names.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Level
+                      </label>
+                      <select
+                        value={editUserData.level}
+                        onChange={(e) => setEditUserData({ ...editUserData, level: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        {levels.map((level) => (
+                          <option key={level} value={level}>{level}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Role
+                    </label>
+                    <select
+                      value={editUserData.role}
+                      onChange={(e) => setEditUserData({ ...editUserData, role: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Room
+                    </label>
+                    <select
+                      value={editUserData.room}
+                      onChange={(e) => setEditUserData({ ...editUserData, room: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">No Room</option>
+                      {rooms.map((room) => (
+                        <option 
+                          key={room._id} 
+                          value={room.roomNo}
+                          disabled={room.allocatedPersons && room.allocatedPersons.length >= room.capacity && !room.allocatedPersons.includes(selectedUser._id)}
+                        >
+                          {room.roomNo} ({room.allocatedPersons ? room.allocatedPersons.length : 0}/{room.capacity})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="mt-6 flex justify-end space-x-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={closeEditModal}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <Card>
         <CardHeader className="flex flex-col sm:flex-row justify-between items-center pb-4">
@@ -185,6 +404,19 @@ const AdminPanel = () => {
           </div>
           
           <div className="flex mt-4 sm:mt-0 gap-2">
+            {/*<div className="relative">*/}
+            {/*  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">*/}
+            {/*    <FiSearch className="h-5 w-5 text-gray-400" />*/}
+            {/*  </div>*/}
+            {/*  <input*/}
+            {/*    type="text"*/}
+            {/*    className="pl-10 pr-4 py-2 w-full min-w-[200px] bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"*/}
+            {/*    placeholder="Search users..."*/}
+            {/*    value={searchTerm}*/}
+            {/*    onChange={(e) => setSearchTerm(e.target.value)}*/}
+            {/*  />*/}
+            {/*</div>*/}
+            
             <Button
               onClick={() => dispatch(fetchUsers())}
               disabled={loading}
@@ -205,7 +437,7 @@ const AdminPanel = () => {
               <input
                 type="text"
                 className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Search users..."
+                placeholder="Search by name, field, mobile..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -253,7 +485,10 @@ const AdminPanel = () => {
                       Room
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Role
+                      Group
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Level
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Actions
@@ -297,24 +532,21 @@ const AdminPanel = () => {
                         <div className="text-sm text-gray-900 dark:text-gray-200">{ user.room ? user.room : "None"}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          user.role === 'admin' ? 'bg-secondary-100 text-secondary-800 dark:bg-secondary-900 dark:text-secondary-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        }`}>
-                          {user.role}
-                        </span>
+                        <div className="text-sm text-gray-900 dark:text-gray-200">{ user.group || "Not Set"}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-gray-200">{ user.level || "Not Set"}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end gap-2">
-                          {user.role !== 'admin' && (
-                            <Button
-                              onClick={() => handlePromoteToAdmin(user._id)}
-                              variant="outline"
-                              size="sm"
-                              icon={<FiShield />}
-                            >
-                              Promote
-                            </Button>
-                          )}
+                          <Button
+                            onClick={() => openEditModal(user)}
+                            variant="outline"
+                            size="sm"
+                            icon={<FiEdit2 />}
+                          >
+                            Edit
+                          </Button>
                           <Button
                             onClick={() => handleDelete(user._id)}
                             variant="danger"

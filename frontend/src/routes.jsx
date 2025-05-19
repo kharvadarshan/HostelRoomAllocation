@@ -7,7 +7,10 @@ import RegisterForm from '@/pages/RegisterForm.jsx';
 import RoomManagement from '@/pages/RoomManagement.jsx';
 import RoomAllocation from '@/pages/RoomAllocation.jsx';
 import {useSelector} from 'react-redux';
-import {selectIsAuthenticated, selectIsAdmin} from '@/store/slices/authSlice.js';
+import {
+  selectIsAdmin,
+  selectIsAuthenticated,
+} from '@/store/slices/authSlice.js';
 
 export const MyRoutes = () => {
 
@@ -19,11 +22,9 @@ export const MyRoutes = () => {
         <Route
             path="/"
             element={
-              isAuthenticated 
-                ? isAdmin 
-                  ? <UserDashboard/> 
-                  : <Navigate to="/dashboard" replace/>
-                : <RegisterForm/>
+              isAuthenticated && isAdmin
+                  ? <AdminPanel/>
+                  : <RegisterForm/>
             }
         />
         <Route
