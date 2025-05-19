@@ -186,19 +186,38 @@ const RoomManagement = () => {
 
   const handleDeAllocateUser = async (roomId, userId) => {
     try {
+      // Optimistically update UI
+      const updatedRooms = rooms.map(room => {
+        if (room._id === roomId) {
+          return {
+            ...room,
+            allocatedPersons: room.allocatedPersons.filter(id => id !== userId)
+          };
+        }
+        return room;
+      });
+      
+      // Update state immediately for responsive UI
+      setRooms(updatedRooms);
+      
+      // Make API call
       const { data } = await api.delete('/rooms', {
         data: { roomId, userId }
       });
       
       if (data.ok) {
         toast.success('User deallocated successfully');
-        fetchRooms();
+        // No need to call fetchRooms() since we've already updated the UI
       } else {
         toast.error(data.message || 'Failed to deallocate user');
+        // Revert optimistic update on failure
+        fetchRooms();
       }
     } catch (error) {
       console.error('Error deallocating user:', error);
       toast.error(error.response?.data?.message || 'Failed to deallocate user');
+      // Revert optimistic update on failure
+      fetchRooms();
     }
   };
 
@@ -692,11 +711,14 @@ const RoomManagement = () => {
       </AnimatePresence>
 
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4">
+        <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-gray-200 dark:border-gray-700">
           <div>
-            <CardTitle>Room Management</CardTitle>
+            <CardTitle className="text-2xl font-bold flex items-center">
+              <FiHome className="mr-2 text-primary-500" />
+              Room Management
+            </CardTitle>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              {filteredRooms.length} rooms found
+              {filteredRooms.length} rooms available
             </p>
           </div>
           
@@ -707,19 +729,21 @@ const RoomManagement = () => {
               </div>
               <input
                 type="text"
-                className="pl-10 pr-4 py-2 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="pl-10 pr-4 py-2 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
                 placeholder="Search room number..."
                 value={roomSearchQuery}
                 onChange={(e) => setRoomSearchQuery(e.target.value)}
               />
             </div>
             
-            <div className="flex items-center">
-              <FiFilter className="mr-2 text-gray-500" />
+            <div className="flex items-center shadow-sm bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
+              <div className="pl-3 pr-2">
+                <FiFilter className="text-gray-500" />
+              </div>
               <select
                 value={floorFilter}
                 onChange={(e) => setFloorFilter(e.target.value)}
-                className="py-2 px-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                className="py-2 pr-3 pl-1 rounded-lg bg-transparent dark:bg-transparent border-0 border-none text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-none"
               >
                 {floorOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -730,6 +754,7 @@ const RoomManagement = () => {
             <Button
               onClick={() => setShowAddModal(true)}
               icon={<FiPlus />}
+              className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 transition-all shadow-md"
             >
               Add Room
             </Button>
@@ -756,7 +781,7 @@ const RoomManagement = () => {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredRooms.map((room) => (
                 <motion.div
                   key={room._id}
@@ -765,21 +790,21 @@ const RoomManagement = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ duration: 0.3 }}
-                  className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-card dark:shadow-card-dark border border-gray-200 dark:border-gray-700"
+                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700"
                 >
-                  <div className="p-4 bg-primary-500 text-white flex justify-between items-center">
+                  <div className="p-4 bg-gradient-to-r from-primary-500 to-primary-600 text-white flex justify-between items-center">
                     <h3 className="text-xl font-bold">Room {room.roomNo}</h3>
                     <div className="flex gap-2">
                       <button
                         onClick={() => openEditModal(room)}
-                        className="p-1 rounded hover:bg-primary-600"
+                        className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
                         title="Edit Room"
                       >
                         <FiEdit3 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteRoom(room._id)}
-                        className="p-1 rounded hover:bg-primary-600"
+                        className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
                         title="Delete Room"
                       >
                         <FiTrash2 className="w-4 h-4" />
@@ -790,19 +815,26 @@ const RoomManagement = () => {
                   <div className="p-5">
                     <div className="flex justify-between items-center mb-4">
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Floor {getFloorFromRoomNo(room.roomNo)}</p>
-                        <p className="text-gray-700 dark:text-gray-300">Capacity: <span className="font-medium">{room.capacity}</span></p>
+                        <p className="text-gray-500 dark:text-gray-400 flex items-center">
+                          <FiHome className="mr-1.5" /> Floor {getFloorFromRoomNo(room.roomNo)}
+                        </p>
+                        <p className="text-gray-700 dark:text-gray-300 flex items-center mt-1">
+                          <FiUsers className="mr-1.5" /> Capacity: <span className="font-medium ml-1">{room.capacity}</span>
+                        </p>
                       </div>
-                      <div className="bg-primary-100 dark:bg-primary-900 rounded-full px-3 py-1">
-                        <p className="text-primary-800 dark:text-primary-200 text-sm font-medium">
+                      <div className="bg-primary-100 dark:bg-primary-900 rounded-full px-4 py-2 font-medium">
+                        <p className="text-primary-800 dark:text-primary-200 text-sm flex items-center">
+                          <FiUser className="mr-1.5" />
                           {room.allocatedPersons?.length || 0}/{room.capacity}
                         </p>
                       </div>
                     </div>
                     
                     <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-gray-900 dark:text-white font-medium">Allocated Persons</h4>
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="text-gray-900 dark:text-white font-medium text-lg flex items-center">
+                          <FiUsers className="w-4 h-4 mr-1.5" /> Occupants
+                        </h4>
                         {(room.allocatedPersons?.length || 0) < room.capacity && (
                           <Button
                             onClick={() => openAddUserModal(room)}
@@ -816,32 +848,32 @@ const RoomManagement = () => {
                         )}
                       </div>
                       {!room.allocatedPersons || room.allocatedPersons.length === 0 ? (
-                        <div className="text-center py-4 border border-dashed border-gray-300 dark:border-gray-700 rounded">
-                          <FiUsers className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <div className="text-center py-6 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+                          <FiUsers className="h-10 w-10 mx-auto mb-2 text-gray-400" />
                           <p className="text-gray-500 italic">No one allocated yet</p>
                           <Button
                             onClick={() => openAddUserModal(room)}
                             size="sm"
                             variant="outline"
-                            className="mt-2"
+                            className="mt-3"
                             icon={<FiUserPlus className="w-4 h-4" />}
                           >
                             Add User
                           </Button>
                         </div>
                       ) : (
-                        <ul className="space-y-2">
+                        <ul className="space-y-2.5">
                           {room.allocatedPersons.map((personId) => {
                             const user = allocatedUsers[personId];
                             return (
-                              <li key={personId} className="flex justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                              <li key={personId} className="flex justify-between p-2.5 bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                                 <div 
-                                  className="flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 transition-colors w-full"
+                                  className="flex items-center cursor-pointer rounded px-2 py-1 transition-colors w-full"
                                   onClick={() => user && !user.error && openUserModal(user)}
                                 >
                                   {user ? (
                                     <>
-                                      <div className="w-10 h-10 rounded-full overflow-hidden mr-3 border border-primary-200">
+                                      <div className="w-10 h-10 rounded-full overflow-hidden mr-3 border-2 border-primary-200 shadow-sm">
                                         {user.photo ? (
                                           <img 
                                             src={user.photo} 
@@ -861,12 +893,12 @@ const RoomManagement = () => {
                                         {!user.error && (
                                           <div className="flex items-center space-x-1 mt-1">
                                             {user.group && (
-                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
+                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
                                                 {user.group}
                                               </span>
                                             )}
                                             {user.level && (
-                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200">
+                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200">
                                                 Level {user.level}
                                               </span>
                                             )}
@@ -885,7 +917,7 @@ const RoomManagement = () => {
                                 </div>
                                 <button
                                   onClick={() => handleDeAllocateUser(room._id, personId)}
-                                  className="text-red-500 hover:text-red-700 p-1 self-center ml-2 flex-shrink-0"
+                                  className="text-red-500 hover:text-red-700 p-1.5 self-center ml-2 flex-shrink-0 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                                   title="Remove user"
                                 >
                                   <FiX className="w-4 h-4" />
