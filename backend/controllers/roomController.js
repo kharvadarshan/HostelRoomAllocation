@@ -115,43 +115,62 @@ const GetRoomById = async(req,res)=>{
         console.error('Error getting room by id', error);
         res.status(500).json({ message: 'Server error while getting room by id' });
     }
-} 
-
-
-const GetAllRoom = async(req,res)=>{
-    try{
-        const { floor } = req.query;
-   
-        let allrooms = await Room.find({});
-
-        if(floor) {
-            // Filter rooms by floor (first digit of room number)
-            allrooms = allrooms.filter(room => {
-                if(room.roomNo) {
-                    return room.roomNo.toString().charAt(0) === floor;
-                }
-                return false;
-            });
-        }
-
-        // If no rooms found, return empty array instead of 404
-        return res.status(200).json({
-            ok: true, 
-            message: "all rooms", 
-            rooms: allrooms || []
-        });
-    } catch(error) {
-        console.error('Error fetching rooms:', error);
-        return res.status(500).json({ 
-            ok: false,
-            message: "Server error", 
-            error: error.message 
-        });
-    }
 }
 
+const GetAllRoom = async(req,res)=>{
+  try{
+    const { floor } = req.query;
 
+    let allrooms = await Room.find({});
 
+    if(floor) {
+      // Filter rooms by floor (first digit of room number)
+      allrooms = allrooms.filter(room => {
+        if(room.roomNo) {
+          // Handle 'R' prefix rooms differently
+          if(room.roomNo.startsWith('R')) {
+            // Consider R rooms as special floor
+            return floor === 'R';
+          }
+          return room.roomNo.toString().charAt(0) === floor;
+        }
+        return false;
+      });
+    }
+
+    // Sort rooms in a logical order
+    allrooms.sort((a, b) => {
+      const roomA = a.roomNo;
+      const roomB = b.roomNo;
+
+      // Handle R rooms (put them at the end)
+      if(roomA.startsWith('R') && !roomB.startsWith('R')) return 1;
+      if(!roomA.startsWith('R') && roomB.startsWith('R')) return -1;
+
+      // Both are R rooms, sort by number
+      if(roomA.startsWith('R') && roomB.startsWith('R')) {
+        return parseInt(roomA.substring(1)) - parseInt(roomB.substring(1));
+      }
+
+      // Both are regular rooms, sort numerically
+      return parseInt(roomA) - parseInt(roomB);
+    });
+
+    // If no rooms found, return empty array instead of 404
+    return res.status(200).json({
+      ok: true,
+      message: "all rooms",
+      rooms: allrooms || []
+    });
+  } catch(error) {
+    console.error('Error fetching rooms:', error);
+    return res.status(500).json({
+      ok: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+}
 
 const DeAllocateUser=async(req,res)=>{
     try

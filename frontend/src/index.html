@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hostel Room Allocation</title>
+    <style>
+      /* Custom styles for the roulette component */
+      .custom-roulette .roulette-pro-wrapper {
+        padding: 0 !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+      }
+      
+      .custom-roulette .roulette-pro-prize-list-container {
+        overflow: visible !important;
+      }
+      
+      .custom-roulette .roulette-pro-prize-list-outer-container {
+        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(255,255,255,0) 100%);
+        padding: 20px 0 !important;
+      }
+      
+      .custom-roulette .roulette-pro-prize-item {
+        transition: all 0.3s ease-in-out;
+      }
+      
+      .custom-roulette .roulette-pro-prize-item-wrapper {
+        margin: 0 10px !important;
+      }
+      
+      .custom-roulette .roulette-pro-prize-item:hover {
+        transform: scale(1.05);
+      }
+      
+      .custom-roulette .roulette-pro-indicator {
+        background-color: #4361ee !important;
+        height: 80px !important;
+        width: 6px !important;
+      }
+      
+      .custom-roulette .roulette-pro-image {
+        object-fit: cover !important;
+        border-radius: 50% !important;
+        padding: 0 !important;
+        border: 3px solid #4361ee !important;
+      }
+      
+      .custom-roulette .roulette-pro-text {
+        font-size: 12px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 90px !important;
+        margin-top: 6px !important;
+      }
+      
+      /* Dark mode styles */
+      html.dark .custom-roulette .roulette-pro-prize-list-outer-container {
+        background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(0,0,0,0) 100%);
+      }
+      
+      html.dark .custom-roulette .roulette-pro-indicator {
+        background-color: #3a86ff !important;
+      }
+      
+      html.dark .custom-roulette .roulette-pro-image {
+        border: 3px solid #3a86ff !important;
+      }
+      
+      html.dark .custom-roulette .roulette-pro-text {
+        color: #e2e8f0 !important;
+      }
+      
+      /* Animation for the selection indicator */
+      @keyframes pulse-glow {
+        0% { box-shadow: 0 0 5px 0px #4361ee; }
+        50% { box-shadow: 0 0 15px 5px #4361ee; }
+        100% { box-shadow: 0 0 5px 0px #4361ee; }
+      }
+      
+      .custom-roulette .roulette-pro-indicator {
+        animation: pulse-glow 1.5s infinite;
+      }
+      
+      html.dark .custom-roulette .roulette-pro-indicator {
+        animation: pulse-glow 1.5s infinite;
+      }
+      
+      /* Confetti animation */
+      .confetti-piece {
+        animation-duration: 3s !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html> 

@@ -4,6 +4,9 @@ import { Button } from '../ui/Button';
 import { FiChevronRight, FiUsers } from 'react-icons/fi';
 import Confetti from 'react-confetti';
 import { useTheme } from '../../hooks/useTheme';
+import Roulette from 'react-roulette-pro';
+import 'react-roulette-pro/dist/index.css';
+import React from 'react';
 
 const UserSelection = ({
   isSelecting,
@@ -18,149 +21,229 @@ const UserSelection = ({
   showConfetti,
   windowSize
 }) => {
-  const [carouselUsers, setCarouselUsers] = useState([]);
-  const [carouselPosition, setCarouselPosition] = useState(0);
-  const [selectionIndex, setSelectionIndex] = useState(0);
-  const animationFrameRef = useRef(null);
-  const carouselRef = useRef(null);
+  const [prizeIndex, setPrizeIndex] = useState(0);
+  const [rouletteStart, setRouletteStart] = useState(false);
+  const [rouletteData, setRouletteData] = useState([]);
+  const [isDataReady, setIsDataReady] = useState(false);
   const { isDarkMode } = useTheme();
-  const [animationProgress, setAnimationProgress] = useState(0);
-  const startTimeRef = useRef(null);
-  const [localSelectionComplete, setLocalSelectionComplete] = useState(false);
   const hasDispatchedEvent = useRef(false);
-  const pauseTimeoutRef = useRef(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const pausedUserIndexRef = useRef(-1);
+  const audioRef = useRef(null);
 
-  // Set up carousel users when selection starts
+  // Logging props for debugging
   useEffect(() => {
+    console.log('UserSelection props updated:', { 
+      isSelecting, 
+      selectionComplete, 
+      filteredUsersCount: filteredUsers?.length,
+      hasCurrentRoom: !!currentRoom,
+      hasSelectedUser: !!selectedUser
+    });
+  }, [isSelecting, selectionComplete, filteredUsers, currentRoom, selectedUser]);
+
+  // Set up roulette data when selection starts
+  useEffect(() => {
+    console.log('Selection state changed:', { isSelecting, selectionComplete, filteredUsersLength: filteredUsers?.length });
+    
     if (isSelecting && !selectionComplete && filteredUsers.length > 0) {
-      // Create a carousel of users (original users repeated to make it seem infinite)
-      const usersForCarousel = [
-        ...filteredUsers.slice(Math.max(0, filteredUsers.length - 5)), 
-        ...filteredUsers, 
-        ...filteredUsers.slice(0, 5)
-      ];
-      setCarouselUsers(usersForCarousel);
-      setCarouselPosition(0);
-      setAnimationProgress(0);
-      setLocalSelectionComplete(false);
-      setIsPaused(false);
-      pausedUserIndexRef.current = -1;
-      hasDispatchedEvent.current = false;
-      startTimeRef.current = Date.now();
+      const newPrizeIndex = Math.floor(Math.random() * filteredUsers.length);
+      console.log('Setting new prize index:', newPrizeIndex, 'out of', filteredUsers.length);
+      setPrizeIndex(newPrizeIndex);
       
-      // Start the animation immediately
-      startAnimation();
+      // Convert users to roulette data format
+      const data = prepareRouletteData(filteredUsers);
+      console.log('Prepared roulette data with', data.length, 'items');
+      setRouletteData(data);
+      setIsDataReady(true);
+      
+      // Reset state
+      hasDispatchedEvent.current = false;
+      
+      // Delay the start of roulette animation
+      console.log('Setting up timeout to start roulette');
+      setTimeout(() => {
+        console.log('Starting roulette now');
+        setRouletteStart(true);
+        
+        // Play spinning sound if available
+        try {
+          const audio = new Audio('/assets/sounds/wheel-spinning.mp3');
+          audio.volume = 0.3;
+          audio.loop = true;
+          audio.play().catch(e => {
+            console.log('Audio play failed, continuing without sound:', e);
+          });
+          audioRef.current = audio;
+        } catch (error) {
+          console.log('Sound not available, continuing without audio:', error);
+        }
+      }, 100); // Reduced delay to start spinning faster
+    } else {
+      console.log('Not starting selection process. Conditions not met:', {
+        isSelecting,
+        notSelectionComplete: !selectionComplete,
+        hasFilteredUsers: filteredUsers.length > 0
+      });
     }
+    
+    // Clean up audio on unmount or when selection stops
+    return () => {
+      if (audioRef.current) {
+        console.log('Cleaning up audio');
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, [isSelecting, selectionComplete, filteredUsers]);
 
-  // Clean up on unmount or when selection completes
+  // Observe selection complete state change
   useEffect(() => {
-    if ((selectionComplete || localSelectionComplete) && animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
+    if (selectionComplete && selectedUser) {
+      console.log('Selection completed with user:', selectedUser.name);
+      
+      // Clean up any audio still playing
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     }
-    
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (pauseTimeoutRef.current) {
-        clearTimeout(pauseTimeoutRef.current);
-      }
-    };
-  }, [selectionComplete, localSelectionComplete]);
+  }, [selectionComplete, selectedUser]);
 
-  // Handle selection completion
+  // Add effect to monitor rouletteStart state
   useEffect(() => {
-    if (localSelectionComplete && !selectionComplete && !hasDispatchedEvent.current) {
-      // When animation completes, notify parent component by triggering user selection
-      const selectedUserIndex = selectionIndex % filteredUsers.length;
-      const finalUser = filteredUsers[selectedUserIndex];
+    console.log('Roulette start state changed:', rouletteStart);
+  }, [rouletteStart]);
+
+  // Convert users data to roulette format
+  const prepareRouletteData = (users) => {
+    console.log('Preparing roulette data from', users.length, 'users');
+    
+    // Ensure we have at least 10 prizes for a good spin
+    let data = users.map((user, index) => ({
+      id: user._id,
+      image: user.photo || 'https://via.placeholder.com/80',
+      text: user.name,
+      index,
+      userData: user
+    }));
+    
+    console.log('Initial data mapping:', data.length, 'items');
+    
+    // If we have less than 10 users, repeat them to get a good spin
+    if (data.length < 10) {
+      const multiplier = Math.ceil(10 / data.length);
+      console.log('Need to repeat data, multiplier:', multiplier);
+      const repeatedData = [];
       
-      // Prevent multiple event dispatches
-      hasDispatchedEvent.current = true;
-      
-      // Check if the room is already at capacity before trying to allocate
-      if (currentRoom && currentRoom.allocatedPersons && 
-          currentRoom.allocatedPersons.length >= currentRoom.capacity) {
-        // Skip allocation if room is full
-        console.log('Room is already at capacity, not allocating user');
-        return;
-      }
-      
-      // Call closeSelection with the selected user
-      // This simulates clicking the selection button with the final user
-      if (finalUser) {
-        const selectEvent = new CustomEvent('userSelected', { 
-          detail: { user: finalUser, index: selectedUserIndex } 
+      for (let i = 0; i < multiplier; i++) {
+        data.forEach(item => {
+          repeatedData.push({
+            ...item,
+            id: `${item.id}-${i}`, // To ensure unique IDs
+            originalId: item.id
+          });
         });
-        window.dispatchEvent(selectEvent);
       }
+      
+      data = repeatedData;
+      console.log('After repeating, data has', data.length, 'items');
     }
-  }, [localSelectionComplete, selectionComplete, selectionIndex, filteredUsers, currentRoom]);
-
-  // Animation function using requestAnimationFrame for smooth animation
-  const startAnimation = () => {
-    const totalDuration = 4000; // 4 seconds total animation
-    const initialSpeed = 70; // Initial speed (pixels per frame) - faster start
-    const minSpeed = 2; // Minimum speed at the end - slower finish
     
-    const animate = () => {
-      // Skip animation if paused
-      if (isPaused) {
-        animationFrameRef.current = requestAnimationFrame(animate);
-        return;
-      }
+    return data;
+  };
 
-      const elapsed = Date.now() - startTimeRef.current;
-      const progress = Math.min(elapsed / totalDuration, 1);
-      setAnimationProgress(progress);
-      
-      // Calculate current speed using easing (fast start, slow finish)
-      // Cubic ease-out for more dramatic slowdown
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-      const currentSpeed = initialSpeed * (1 - easedProgress) + minSpeed;
-      
-      // Move the carousel
-      setCarouselPosition(prevPosition => {
-        const newPosition = prevPosition + currentSpeed;
-        
-        // Calculate which user is centered
-        const centerPosition = window.innerWidth / 2;
-        const itemWidth = 140; // Width of each item plus margin
-        const index = Math.floor((newPosition + centerPosition) / itemWidth) % filteredUsers.length;
-        
-        // Only update the index if it changed to avoid unnecessary re-renders
-        if (index !== selectionIndex) {
-          setSelectionIndex(index);
-          
-          // If we've changed index, pause briefly on this user (if not near the end)
-          if (progress < 0.7 && index !== pausedUserIndexRef.current) {
-            pausedUserIndexRef.current = index;
-            setIsPaused(true);
-            
-            // Resume after 500ms
-            pauseTimeoutRef.current = setTimeout(() => {
-              setIsPaused(false);
-            }, 500);
-          }
-        }
-        
-        return newPosition;
-      });
-      
-      // Continue the animation if not complete
-      if (progress < 1) {
-        animationFrameRef.current = requestAnimationFrame(animate);
-      } else {
-        // Animation is complete
-        setLocalSelectionComplete(true);
-      }
-    };
+  // Handle when the roulette stops
+  const handlePrizeDetermined = () => {
+    console.log('Prize determined from roulette component!', { prizeIndex, dataLength: rouletteData.length });
     
-    // Start the animation loop
-    animationFrameRef.current = requestAnimationFrame(animate);
+    // We're now using the timeout-based approach in the parent component,
+    // so this handler is mainly for logging and cleanup
+    
+    // Stop spinning sound
+    if (audioRef.current) {
+      console.log('Stopping audio in handlePrizeDetermined');
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    
+    // Log the winning prize details for debugging
+    if (rouletteData.length > 0) {
+      const winningPrize = rouletteData[prizeIndex];
+      console.log('Roulette winning prize:', winningPrize);
+      
+      if (!hasDispatchedEvent.current) {
+        console.log('Not dispatching event - using timeout-based selection instead');
+      }
+    } else {
+      console.log('Cannot determine winner: rouletteData.length =', rouletteData.length);
+    }
+  };
+
+  // Roulette prize mapping
+  const prizes = rouletteData;
+
+  // Roulette settings for a smooth, slower animation
+  const rouletteSettings = {
+    start: rouletteStart,
+    prizes,
+    prizeIndex,
+    defaultDesignOptions: {
+      prizeShadowColor: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.2)',
+      prizeItemBackground: isDarkMode ? '#2a2a2a' : '#ffffff',
+      prizeItemTextColor: isDarkMode ? '#ffffff' : '#000000',
+    },
+    options: {
+      stopInCenter: true,
+      withoutAnimation: false,
+      soundWhileSpinning: false,
+      spinningTime: 5, // Keep at 5 seconds to match our 6-second timeout
+      generateId: true,
+    },
+    designOptions: {
+      prizeShadowWidth: 30,
+      prizeShadowOpacity: 0.3,
+      prizeItemWidth: 90,
+      prizeItemHeight: 90,
+    },
+    spinningTime: 5, // Keep consistent with options.spinningTime
+    onPrizeDetermined: handlePrizeDetermined,
+  };
+
+  // Custom styles for roulette component
+  const rouletteStyles = {
+    wrapper: {
+      backgroundColor: 'transparent',
+      boxShadow: 'none',
+      width: '100%',
+      marginTop: '1rem',
+      marginBottom: '1rem',
+    },
+    prize: {
+      border: `3px solid ${isDarkMode ? '#3a86ff' : '#4361ee'}`,
+      borderRadius: '50%',
+      boxShadow: `0 0 10px ${isDarkMode ? 'rgba(61, 134, 255, 0.5)' : 'rgba(67, 97, 238, 0.5)'}`,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    prizeImage: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      borderRadius: '50%',
+    },
+    prizeName: {
+      position: 'absolute',
+      bottom: '-24px',
+      left: '0',
+      right: '0',
+      textAlign: 'center',
+      backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+      color: isDarkMode ? '#fff' : '#000',
+      padding: '2px 0',
+      fontSize: '10px',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    },
   };
 
   return (
@@ -175,67 +258,25 @@ const UserSelection = ({
         />
       )}
       
-      {/* User Selection Carousel with Prize Wheel effect */}
-      {isSelecting && !selectionComplete && carouselUsers.length > 0 && (
-        <div className="w-full my-8 relative">
-          {/* Pin indicator - now pointing up instead of down */}
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[15px] border-r-[15px] border-t-[20px] border-l-transparent border-r-transparent border-t-red-600 z-20" />
+      {/* User Selection Roulette */}
+      {isSelecting && !selectionComplete && isDataReady && (
+        <div className="w-full my-8">
+          <h3 className="text-xl font-semibold text-center mb-4">
+            Selecting random user...
+          </h3>
           
-          {/* Carousel window with partial visibility */}
-          <div className="mx-auto relative max-w-xl overflow-hidden" style={{ height: '180px' }}>
-            <div 
-              className="flex items-center transition-transform absolute"
-              style={{ transform: `translateX(-${carouselPosition}px)` }}
-              ref={carouselRef}
-            >
-              {carouselUsers.map((user, index) => {
-                const isSelected = index % filteredUsers.length === selectionIndex;
-                return (
-                  <div 
-                    key={`carousel-${index}`}
-                    className={`flex-shrink-0 w-[140px] mx-3 transform transition-all duration-300 ${
-                      isSelected 
-                        ? 'scale-110 z-10' 
-                        : 'scale-90 opacity-70'
-                    }`}
-                  >
-                    <div 
-                      className={`relative rounded-full overflow-hidden border-4 h-[140px] ${
-                        isSelected 
-                          ? 'border-red-500 shadow-xl' 
-                          : 'border-gray-300'
-                      }`}
-                    >
-                      <img 
-                        src={user.photo} 
-                        alt={user.name} 
-                        className="w-full h-full object-cover"
-                      />
-                      {isSelected && (
-                        <motion.div 
-                          className="absolute inset-0 bg-red-500 mix-blend-overlay"
-                          animate={{ opacity: [0, 0.3, 0] }}
-                          transition={{ 
-                            duration: 0.5,
-                            repeat: Infinity
-                          }}
-                        />
-                      )}
-                    </div>
-                    <p className="text-center text-sm mt-2 truncate">{user.name}</p>
-                    {isSelected && isPaused && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="absolute top-0 -right-4 w-8 h-8 bg-primary-500 rounded-full text-white flex items-center justify-center"
-                      >
-                        ✓
-                      </motion.div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+          <div className="max-w-2xl mx-auto">
+            {console.log('Rendering Roulette with settings:', {
+              start: rouletteStart,
+              prizeIndex,
+              prizesLength: prizes.length,
+              spinningTime: rouletteSettings.spinningTime
+            })}
+            
+            <ErrorBoundaryRoulette
+              rouletteSettings={rouletteSettings}
+              rouletteStyles={rouletteStyles}
+            />
           </div>
         </div>
       )}
@@ -287,7 +328,6 @@ const UserSelection = ({
                 />
                 
                 {/* Celebration emoji */}
-                {/*<div className="absolute -top-6 -right-6 text-6xl animate-bounce">🎉</div>*/}
                 <div className="absolute -top-6 -left-6 text-6xl animate-bounce delay-300">🎉</div>
               </div>
               
@@ -355,5 +395,52 @@ const UserSelection = ({
     </div>
   );
 };
+
+// Error boundary component for Roulette
+class ErrorBoundaryRoulette extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error in Roulette component:', error, errorInfo);
+  }
+
+  render() {
+    const { rouletteSettings, rouletteStyles } = this.props;
+    
+    if (this.state.hasError) {
+      console.error('Rendering fallback due to error:', this.state.error);
+      return (
+        <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+          <p className="text-red-500">Error rendering roulette. Please try again.</p>
+          <pre className="mt-2 text-xs overflow-auto">{this.state.error?.message}</pre>
+        </div>
+      );
+    }
+
+    try {
+      return (
+        <Roulette
+          {...rouletteSettings}
+          className="custom-roulette"
+          style={rouletteStyles}
+        />
+      );
+    } catch (error) {
+      console.error('Caught error while rendering Roulette:', error);
+      return (
+        <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+          <p className="text-red-500">Failed to initialize roulette.</p>
+        </div>
+      );
+    }
+  }
+}
 
 export default UserSelection; 

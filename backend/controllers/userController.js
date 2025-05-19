@@ -98,18 +98,18 @@ const updateUser = asyncHandler(async (req, res) => {
     user.role = req.body.role || user.role;
     user.group = req.body.group || user.group;
     user.level = req.body.level || user.level;
+    
 
-   
     // If there's a new photo upload
     // if (req.file) {
     //   // Delete the previous image from cloudinary
     //   await cloudinary.uploader.destroy(user.cloudinaryId);
-
+      
     //   // Upload new image
     //   const result = await cloudinary.uploader.upload(req.file.path, {
     //     folder: "user_photos",
     //   });
-
+      
     //   user.photo = result.secure_url;
     //   user.cloudinaryId = result.public_id;
     // }
@@ -142,7 +142,7 @@ const deleteUser = asyncHandler(async (req, res) => {
   if (user) {
     // Delete image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-
+    
     await user.deleteOne();
     res.json({ message: "User removed" });
   } else {
@@ -160,12 +160,12 @@ const updateUserPhoto = asyncHandler(async (req, res) => {
   if (user && req.file) {
     // Delete the previous image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-
+    
     // Upload new image
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: "user_photos",
     });
-
+    
     user.photo = result.secure_url;
     user.cloudinaryId = result.public_id;
 
@@ -183,7 +183,7 @@ const updateUserPhoto = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 });
-
+  
 // @desc    Delete profile photo
 // @route   DELETE /api/users/photo
 // @access  Private
@@ -193,18 +193,18 @@ const deleteUserPhoto = asyncHandler(async (req, res) => {
   if (user) {
     // Delete the image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-
+    
     // Set a default photo
     const result = await cloudinary.uploader.upload(
       "https://res.cloudinary.com/demo/image/upload/v1612228187/samples/people/default-profile.jpg",
       { folder: "user_photos" }
     );
-
+    
     user.photo = result.secure_url;
     user.cloudinaryId = result.public_id;
-
+    
     await user.save();
-
+    
     res.json({ message: "Photo removed and set to default" });
   } else {
     res.status(404);
@@ -262,7 +262,7 @@ const getAllocatedUsers = async (req, res) => {
         ok: false,
         message: 'User IDs are required'
       });
-    }
+  }
     
     // Split the comma-separated string into an array of IDs
     const userIdArray = userIds.split(',').filter(id => id.trim().length > 0);
@@ -310,14 +310,14 @@ const getAllocatedUsers = async (req, res) => {
   }
 };
 
-export {
-  registerUser,
-  getUsers,
-  getUserById,
-  updateUser,
-  deleteUser,
-  updateUserPhoto,
+export { 
+  registerUser, 
+  getUsers, 
+  getUserById, 
+  updateUser, 
+  deleteUser, 
+  updateUserPhoto, 
   deleteUserPhoto,
   getUnallocatedUsers,
   getAllocatedUsers,
-};
+}; 

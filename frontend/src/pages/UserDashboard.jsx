@@ -328,37 +328,37 @@ const UserDashboard = () => {
             <CardTitle>Your Profile</CardTitle>
             <div className="flex space-x-2">
               {isAdmin && (
-                <Button
+              <Button
                   variant={isEditing ? "danger" : "primary"}
-                  size="sm"
+                size="sm"
                   icon={isEditing ? <FiX /> : <FiEdit />}
                   onClick={toggleEditing}
-                >
+              >
                   {isEditing ? "Cancel Editing" : "Edit Profile"}
-                </Button>
+              </Button>
               )}
             </div>
           </div>
         </CardHeader>
         
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center">
-              <div 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="flex flex-col items-center">
+                <div 
                 className="w-40 h-40 rounded-full overflow-hidden border-4 border-primary-500 shadow-lg cursor-pointer hover:shadow-xl transition-shadow duration-200 relative"
-                onClick={() => setShowFullPhoto(true)}
-              >
-                {user.photo ? (
-                  <img 
-                    src={user.photo} 
-                    alt={user.name} 
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <FiUser className="w-20 h-20 text-gray-400" />
-                  </div>
-                )}
+                  onClick={() => setShowFullPhoto(true)}
+                >
+                  {user.photo ? (
+                    <img 
+                      src={user.photo} 
+                      alt={user.name} 
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <FiUser className="w-20 h-20 text-gray-400" />
+                    </div>
+                  )}
                 
                 <button 
                   className="absolute bottom-0 right-0 bg-primary-500 text-white p-2 rounded-full shadow-lg hover:bg-primary-600 transition-colors"
@@ -369,9 +369,9 @@ const UserDashboard = () => {
                 >
                   <FiCamera className="w-5 h-5" />
                 </button>
-              </div>
-              <h3 className="mt-4 text-xl font-bold text-gray-900 dark:text-white">{user.name}</h3>
-              <p className="text-gray-600 dark:text-gray-400">{user.field}</p>
+                </div>
+                <h3 className="mt-4 text-xl font-bold text-gray-900 dark:text-white">{user.name}</h3>
+                <p className="text-gray-600 dark:text-gray-400">{user.field}</p>
               
               <div className="mt-2 flex flex-wrap justify-center gap-2">
                 {user.group && (
@@ -388,38 +388,38 @@ const UserDashboard = () => {
                   </span>
                 )}
               </div>
-            </div>
-            
-            <div className="md:col-span-2">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                    Full Name
-                  </label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Enter your name"
-                    icon={<FiUser className="w-5 h-5 text-gray-400" />}
+              </div>
+              
+              <div className="md:col-span-2">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Full Name
+                    </label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="Enter your name"
+                      icon={<FiUser className="w-5 h-5 text-gray-400" />}
                     disabled={!isEditing}
-                  />
-                </div>
+                    />
+                  </div>
 
-                <div>
-                  <label htmlFor="field" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                    Field
-                  </label>
-                  <Input
-                    id="field"
-                    name="field"
-                    value={formData.field}
-                    onChange={handleChange}
-                    placeholder="Enter your field (e.g. Engineering, Art)"
-                    icon={<FiBookOpen className="w-5 h-5 text-gray-400" />}
+                  <div>
+                    <label htmlFor="field" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Field
+                    </label>
+                    <Input
+                      id="field"
+                      name="field"
+                      value={formData.field}
+                      onChange={handleChange}
+                      placeholder="Enter your field (e.g. Engineering, Art)"
+                      icon={<FiBookOpen className="w-5 h-5 text-gray-400" />}
                     disabled={!isEditing}
-                  />
+                    />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -442,7 +442,7 @@ const UserDashboard = () => {
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
                     <label htmlFor="level" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                       Level
@@ -484,33 +484,33 @@ const UserDashboard = () => {
                 )}
 
                 {isEditing && showPasswordField && (
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                      New Password
-                    </label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="Enter new password"
-                      icon={<FiLock className="w-5 h-5 text-gray-400" />}
-                      endIcon={
-                        <button 
-                          type="button" 
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                        >
-                          {showPassword ? 
-                            <FiEyeOff className="w-5 h-5" /> : 
-                            <FiEye className="w-5 h-5" />
-                          }
-                        </button>
-                      }
-                    />
-                  </div>
-                )}
+                    <div>
+                      <label htmlFor="password" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                        New Password
+                      </label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Enter new password"
+                        icon={<FiLock className="w-5 h-5 text-gray-400" />}
+                        endIcon={
+                          <button 
+                            type="button" 
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          >
+                            {showPassword ? 
+                              <FiEyeOff className="w-5 h-5" /> : 
+                              <FiEye className="w-5 h-5" />
+                            }
+                          </button>
+                        }
+                      />
+                    </div>
+                  )}
 
                 {isEditing && (
                   <div className="pt-4 flex justify-end">
@@ -523,9 +523,9 @@ const UserDashboard = () => {
                     </Button>
                   </div>
                 )}
-              </form>
+                </form>
+              </div>
             </div>
-          </div>
         </CardContent>
       </Card>
     </div>
