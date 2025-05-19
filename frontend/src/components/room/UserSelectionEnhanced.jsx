@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { FiUsers } from 'react-icons/fi';
 import Roulette from 'react-roulette-pro';
 import 'react-roulette-pro/dist/index.css';
 import { useTheme } from '../../hooks/useTheme';
-import UserSelectionController from './UserSelectionController';
+import useAudio from '../../hooks/useAudio';
+import { toast } from 'react-hot-toast';
 
 const UserSelectionEnhanced = ({
   isSelecting,
@@ -19,55 +20,82 @@ const UserSelectionEnhanced = ({
   const [prizeIndex, setPrizeIndex] = useState(0);
   const [rouletteStart, setRouletteStart] = useState(false);
   const [rouletteData, setRouletteData] = useState([]);
-  const [localIsSelecting, setLocalIsSelecting] = useState(false);
   const { isDarkMode } = useTheme();
-  
-  // Get the user selection controller hook
-  const controller = UserSelectionController({
-    filteredUsers,
-    currentRoom,
-    onUserSelected,
-    isRoomFull: currentRoom?.allocatedPersons?.length >= currentRoom?.capacity
-  });
-
-  // Handle the button click to start selection
-  const handleStartSelection = useCallback(() => {
-    // First call the parent's startUserSelection to update global state
-    startUserSelection();
-    
-    // Then start the local roulette selection
-    setLocalIsSelecting(true);
-    
-    // Use the controller to handle the selection logic
-    controller.startRandomSelection();
-  }, [startUserSelection, controller, setLocalIsSelecting]);
+  const audio = useAudio();
+  const selectionInProgress = useRef(false);
 
   // Set up roulette data when selection starts
   useEffect(() => {
-    if ((isSelecting || localIsSelecting) && !selectionComplete && filteredUsers.length > 0) {
+    console.log("Selection state:", { isSelecting, selectionComplete, filteredUsersCount: filteredUsers?.length });
+    
+    if (isSelecting && !selectionComplete && filteredUsers.length > 0) {
+      // Don't start if already in progress
+      if (selectionInProgress.current) return;
+      
+      selectionInProgress.current = true;
+      
+      // Get random prize index
+      const randomIndex = getRandomIndex(filteredUsers);
+      setPrizeIndex(randomIndex);
+      console.log('Selected random prize index:', randomIndex, 'for user:', filteredUsers[randomIndex]?.name);
+      
       // Prepare the roulette data
       const data = prepareRouletteData(filteredUsers);
       setRouletteData(data);
+      console.log('Prepared roulette data with', data.length, 'items');
       
-      // Get random prize index
-      const randomIndex = Math.floor(Math.random() * filteredUsers.length);
-      setPrizeIndex(randomIndex);
+      // Play spinning sound
+      audio.play('/assets/sounds/wheel-spinning.mp3', {
+        volume: 0.3,
+        loop: true
+      });
       
       // Start roulette after a small delay
       setTimeout(() => {
+        console.log('Starting roulette animation');
         setRouletteStart(true);
       }, 100);
-    } else {
+      
+      // Schedule selection completion
+      setTimeout(() => {
+        if (filteredUsers[randomIndex]) {
+          console.log('Selection timeout triggered - selecting user:', filteredUsers[randomIndex].name);
+          
+          // Stop spinning audio
+          audio.stop();
+          
+          // Play success sound
+          audio.play('/assets/sounds/win-sound.mp3', { volume: 0.5 });
+          
+          // Show the selected user
+          onUserSelected(filteredUsers[randomIndex]);
+        }
+        
+        // Reset state
+        setRouletteStart(false);
+        selectionInProgress.current = false;
+      }, 6000); // 6 seconds to allow the 5-second spin to complete
+    } else if (!isSelecting) {
+      // Reset when selection is cancelled or completed
       setRouletteStart(false);
+      selectionInProgress.current = false;
     }
-  }, [isSelecting, localIsSelecting, selectionComplete, filteredUsers]);
+  }, [isSelecting, selectionComplete, filteredUsers, audio, onUserSelected]);
 
-  // Reset local selection state when parent selection state changes
-  useEffect(() => {
-    if (!isSelecting) {
-      setLocalIsSelecting(false);
+  // Function to get a truly random index
+  const getRandomIndex = (array) => {
+    if (!array || array.length === 0) return -1;
+    
+    // Use crypto for better randomness if available
+    if (window.crypto && window.crypto.getRandomValues) {
+      const randomBuffer = new Uint32Array(1);
+      window.crypto.getRandomValues(randomBuffer);
+      return Math.floor(randomBuffer[0] / (0xffffffff + 1) * array.length);
     }
-  }, [isSelecting]);
+    
+    // Fallback to Math.random
+    return Math.floor(Math.random() * array.length);
+  };
 
   // Convert users data to roulette format
   const prepareRouletteData = (users) => {
@@ -102,6 +130,11 @@ const UserSelectionEnhanced = ({
     return data;
   };
 
+  // Handle prize determined event
+  const handlePrizeDetermined = () => {
+    console.log('Prize determined from roulette component!', { prizeIndex });
+  };
+
   // Roulette settings
   const rouletteSettings = {
     start: rouletteStart,
@@ -125,7 +158,8 @@ const UserSelectionEnhanced = ({
       prizeItemWidth: 90,
       prizeItemHeight: 90,
     },
-    spinningTime: 5
+    spinningTime: 5,
+    onPrizeDetermined: handlePrizeDetermined,
   };
   
   // Custom styles for roulette
@@ -166,39 +200,39 @@ const UserSelectionEnhanced = ({
     },
   };
 
-  // Error boundary component for Roulette
-  const ErrorBoundaryRoulette = ({ rouletteSettings, rouletteStyles }) => {
-    try {
-      return (
-        <Roulette
-          {...rouletteSettings}
-          className="custom-roulette"
-          style={rouletteStyles}
-        />
-      );
-    } catch (error) {
-      console.error('Error rendering Roulette:', error);
-      return (
-        <div className="p-4 border border-red-300 bg-red-50 rounded-md">
-          <p className="text-red-500">Error rendering roulette. Please try again.</p>
-        </div>
-      );
+  // Begin selection process
+  const handleStartSelection = () => {
+    if (filteredUsers.length === 0) {
+      toast.error('No users available for selection');
+      return;
     }
+    
+    if (currentRoom?.allocatedPersons?.length >= currentRoom?.capacity) {
+      toast.error('Room is at full capacity');
+      return;
+    }
+    
+    if (selectionInProgress.current) {
+      return;
+    }
+    
+    startUserSelection();
   };
 
   return (
     <div className="flex flex-col items-center">
       {/* User Selection Roulette */}
-      {(isSelecting || localIsSelecting) && !selectionComplete && (
+      {isSelecting && !selectionComplete && (
         <div className="w-full my-8">
           <h3 className="text-xl font-semibold text-center mb-4">
             Selecting random user...
           </h3>
           
           <div className="max-w-2xl mx-auto">
-            <ErrorBoundaryRoulette
-              rouletteSettings={rouletteSettings}
-              rouletteStyles={rouletteStyles}
+            <Roulette
+              {...rouletteSettings}
+              className="custom-roulette"
+              style={rouletteStyles}
             />
           </div>
         </div>
@@ -210,13 +244,13 @@ const UserSelectionEnhanced = ({
           disabled={
             !filteredUsers.length || 
             isSelecting || 
-            localIsSelecting ||
+            selectionInProgress.current ||
             (currentRoom?.allocatedPersons?.length >= currentRoom?.capacity)
           }
           icon={<FiUsers />}
           size="lg"
         >
-          {(isSelecting || localIsSelecting) && !selectionComplete ? 'Selecting...' : 'Select Random User'}
+          {isSelecting && !selectionComplete ? 'Selecting...' : 'Select Random User'}
         </Button>
       </div>
       
