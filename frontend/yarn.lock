@@ -2838,6 +2838,11 @@ raw-body@^3.0.0:
     iconv-lite "0.6.3"
     unpipe "1.0.0"
 
+react-confetti-boom@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/react-confetti-boom/-/react-confetti-boom-1.1.2.tgz#9a27763c50a6ad25d93d7e40daf0ae9062976011"
+  integrity sha512-JeJojpoIcF5xcNhkM3ifCW+XL6ScTOJUrr4eTLcrwa0rrLqc9hW3DTyn2IJ806PGWJHp2PjpMyWS2h0SAoadzg==
+
 react-confetti-explosion@^2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/react-confetti-explosion/-/react-confetti-explosion-2.1.2.tgz#dfbccf28985ce6938143ceb1023b9facfb0a5835"
@@ -2912,6 +2917,11 @@ react-refresh@^0.17.0:
   version "0.17.0"
   resolved "https://registry.yarnpkg.com/react-refresh/-/react-refresh-0.17.0.tgz#b7e579c3657f23d04eccbe4ad2e58a8ed51e7e53"
   integrity sha512-z6F7K9bV85EfseRCp2bzrpyQ0Gkw1uLoCel9XBVWPg/TjRj94SkJzUTGfOa4bs7iJvBWtQG0Wq7wnI0syw3EBQ==
+
+react-roulette-pro@^3.2.2:
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/react-roulette-pro/-/react-roulette-pro-3.2.2.tgz#baa84581570cbea793611538a6b0ffe60343136a"
+  integrity sha512-d1TB1H1hU83awHF5x591gfvOkt077h9O8A+IH2+57RwFEYPwqaF/cZtahOlW4TEN2seGRQ8W7bRzrmNn26t0mw==
 
 react-router@^7.6.0:
   version "7.6.0"

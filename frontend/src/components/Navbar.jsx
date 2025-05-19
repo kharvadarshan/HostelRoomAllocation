@@ -74,9 +74,9 @@ const Navbar = () => {
             </button>
             
             {isAuthenticated ? (
-              <div className="relative">
-                <div className="flex items-center">
-                  {isAdmin && (
+              <div className="flex items-center">
+                {isAdmin && (
+                  <>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -86,8 +86,28 @@ const Navbar = () => {
                     >
                       Admin
                     </Button>
-                  )}
-                  
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mr-2"
+                      icon={<FiHome />}
+                      onClick={() => navigate('/rooms')}
+                    >
+                      Rooms
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mr-2"
+                      icon={<FiUsers />}
+                      onClick={() => navigate('/room-allocation')}
+                    >
+                      Allocation
+                    </Button>
+                  </>
+                )}
+                
+                <div className="relative">
                   <button
                     onClick={toggleDropdown}
                     className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none"
@@ -109,80 +129,80 @@ const Navbar = () => {
                       {user?.name?.split(' ')[0] || 'User'}
                     </span>
                   </button>
+                  
+                  <AnimatePresence>
+                    {isDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-48 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-50 border border-gray-100 dark:border-gray-700"
+                      >
+                        <Link 
+                          to="/dashboard" 
+                          className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          <FiUser className="mr-2" />
+                          Dashboard
+                        </Link>
+                        
+                        {isAdmin && (
+                          <Link 
+                            to="/admin" 
+                            className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            <FiShield className="mr-2" />
+                            Admin Panel
+                          </Link>
+                        )}
+                        
+                        {isAdmin && (
+                          <Link 
+                            to="/rooms" 
+                            className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            <FiHome className="mr-2" />
+                            Room Management
+                          </Link>
+                        )}
+                        
+                        {isAdmin && (
+                          <Link 
+                            to="/room-allocation" 
+                            className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            <FiUsers className="mr-2" />
+                            Room Allocation
+                          </Link>
+                        )}
+                        
+                        <Link 
+                          to="/settings" 
+                          className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          <FiSettings className="mr-2" />
+                          Settings
+                        </Link>
+                        
+                        <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                        
+                        <button
+                          onClick={handleLogout}
+                          className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                        >
+                          <FiLogOut className="mr-2" />
+                          Logout
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                
-                <AnimatePresence>
-                  {isDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-48 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-50 border border-gray-100 dark:border-gray-700"
-                    >
-                      <Link 
-                        to="/dashboard" 
-                        className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <FiUser className="mr-2" />
-                        Dashboard
-                      </Link>
-                      
-                      {isAdmin && (
-                        <Link 
-                          to="/admin" 
-                          className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          <FiShield className="mr-2" />
-                          Admin Panel
-                        </Link>
-                      )}
-                      
-                      {isAdmin && (
-                        <Link 
-                          to="/rooms" 
-                          className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          <FiHome className="mr-2" />
-                          Room Management
-                        </Link>
-                      )}
-                      
-                      {isAdmin && (
-                        <Link 
-                          to="/room-allocation" 
-                          className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          <FiUsers className="mr-2" />
-                          Room Allocation
-                        </Link>
-                      )}
-                      
-                      <Link 
-                        to="/settings" 
-                        className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <FiSettings className="mr-2" />
-                        Settings
-                      </Link>
-                      
-                      <hr className="my-1 border-gray-200 dark:border-gray-700" />
-                      
-                      <button
-                        onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                      >
-                        <FiLogOut className="mr-2" />
-                        Logout
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             ) : (
               <div className="flex items-center space-x-3">

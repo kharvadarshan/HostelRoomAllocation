@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
 import cloudinary from "../config/cloudinary.js";
 import jwt from "jsonwebtoken";
+import Room from "../models/roomModel.js";
 
 // Generate JWT
 const generateToken = (id) => {
@@ -91,25 +92,81 @@ const getUserById = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   
-
   if (user) {
+    // Save old room value to check if changed
+    const oldRoom = user.room;
+    const newRoom = req.body.room;
+    
+    // Update user fields
     user.name = req.body.name || user.name;
     user.field = req.body.field || user.field;
     user.role = req.body.role || user.role;
     user.group = req.body.group || user.group;
     user.level = req.body.level || user.level;
+    user.room = req.body.room || user.room;
+    
+    // Handle room change
+    if (newRoom && newRoom !== oldRoom) {
+      // If user already had a room, remove from that room
+      if (oldRoom) {
+        // Find old room and remove user from allocatedPersons
+        const oldRoomObj = await Room.findOne({ roomNo: oldRoom });
+        if (oldRoomObj) {
+          await Room.findByIdAndUpdate(
+            oldRoomObj._id,
+            {
+              $pull: { allocatedPersons: user._id }
+            }
+          );
+        }
+      }
+      
+      // Add user to new room
+      const newRoomObj = await Room.findOne({ roomNo: newRoom });
+      if (newRoomObj) {
+        // Check if room has capacity
+        if (newRoomObj.allocatedPersons && newRoomObj.allocatedPersons.length >= newRoomObj.capacity) {
+          res.status(400);
+          throw new Error("Room has reached maximum capacity");
+        }
+        
+        // Add user to room
+        await Room.findByIdAndUpdate(
+          newRoomObj._id,
+          {
+            $addToSet: { allocatedPersons: user._id }
+          }
+        );
+      } else {
+        res.status(404);
+        throw new Error("Selected room not found");
+      }
+    } else if (oldRoom && !newRoom) {
+      // User is being removed from a room
+      const oldRoomObj = await Room.findOne({ roomNo: oldRoom });
+      if (oldRoomObj) {
+        await Room.findByIdAndUpdate(
+          oldRoomObj._id,
+          {
+            $pull: { allocatedPersons: user._id }
+          }
+        );
+      }
+      
+      // Clear room field
+      user.room = "";
+    }
 
-   
     // If there's a new photo upload
     // if (req.file) {
     //   // Delete the previous image from cloudinary
     //   await cloudinary.uploader.destroy(user.cloudinaryId);
-
+      
     //   // Upload new image
     //   const result = await cloudinary.uploader.upload(req.file.path, {
     //     folder: "user_photos",
     //   });
-
+      
     //   user.photo = result.secure_url;
     //   user.cloudinaryId = result.public_id;
     // }
@@ -123,8 +180,9 @@ const updateUser = asyncHandler(async (req, res) => {
       field: updatedUser.field,
       photo: updatedUser.photo,
       role: updatedUser.role,
-      level:updatedUser.level,
-      group:updatedUser.group,
+      level: updatedUser.level,
+      group: updatedUser.group,
+      room: updatedUser.room
     });
 
   } else {
@@ -142,7 +200,7 @@ const deleteUser = asyncHandler(async (req, res) => {
   if (user) {
     // Delete image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-
+    
     await user.deleteOne();
     res.json({ message: "User removed" });
   } else {
@@ -160,12 +218,12 @@ const updateUserPhoto = asyncHandler(async (req, res) => {
   if (user && req.file) {
     // Delete the previous image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-
+    
     // Upload new image
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: "user_photos",
     });
-
+    
     user.photo = result.secure_url;
     user.cloudinaryId = result.public_id;
 
@@ -183,7 +241,7 @@ const updateUserPhoto = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 });
-
+  
 // @desc    Delete profile photo
 // @route   DELETE /api/users/photo
 // @access  Private
@@ -193,23 +251,65 @@ const deleteUserPhoto = asyncHandler(async (req, res) => {
   if (user) {
     // Delete the image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-
+    
     // Set a default photo
     const result = await cloudinary.uploader.upload(
       "https://res.cloudinary.com/demo/image/upload/v1612228187/samples/people/default-profile.jpg",
       { folder: "user_photos" }
     );
-
+    
     user.photo = result.secure_url;
     user.cloudinaryId = result.public_id;
-
+    
     await user.save();
-
+    
     res.json({ message: "Photo removed and set to default" });
   } else {
     res.status(404);
     throw new Error("User not found");
   }
+});
+
+// @desc    Search for users
+// @route   GET /api/users/search
+// @access  Private/Admin
+const searchUsers = asyncHandler(async (req, res) => {
+  const { query, group, level } = req.query;
+  
+  if (!query && !group && !level) {
+    res.status(400);
+    throw new Error("Please provide a search query, group, or level");
+  }
+  
+  const searchQuery = {};
+  
+  // Add unallocated filter (users without a room)
+  if (req.query.unallocated === 'true') {
+    searchQuery.room = { $in: ["", null] };
+  }
+  
+  // Add query parameter for name, mobile, or field search
+  if (query) {
+    searchQuery.$or = [
+      { name: { $regex: query, $options: 'i' } },
+      { mobile: { $regex: query, $options: 'i' } },
+      { field: { $regex: query, $options: 'i' } }
+    ];
+  }
+  
+  // Add group filter if provided
+  if (group) {
+    searchQuery.group = group;
+  }
+  
+  // Add level filter if provided
+  if (level) {
+    searchQuery.level = level;
+  }
+  
+  const users = await User.find(searchQuery).select("-password").limit(20);
+  
+  res.json(users);
 });
 
 // Get Unallocated Users
@@ -262,7 +362,7 @@ const getAllocatedUsers = async (req, res) => {
         ok: false,
         message: 'User IDs are required'
       });
-    }
+  }
     
     // Split the comma-separated string into an array of IDs
     const userIdArray = userIds.split(',').filter(id => id.trim().length > 0);
@@ -310,14 +410,15 @@ const getAllocatedUsers = async (req, res) => {
   }
 };
 
-export {
-  registerUser,
-  getUsers,
-  getUserById,
-  updateUser,
-  deleteUser,
-  updateUserPhoto,
+export { 
+  registerUser, 
+  getUsers, 
+  getUserById, 
+  updateUser, 
+  deleteUser, 
+  updateUserPhoto, 
   deleteUserPhoto,
   getUnallocatedUsers,
   getAllocatedUsers,
-};
+  searchUsers
+}; 

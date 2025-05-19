@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
@@ -17,16 +17,22 @@ import {
   FiLayers,
   FiMail,
   FiPhone,
-  FiInfo, FiHome,
+  FiInfo, 
+  FiHome,
+  FiSearch,
+  FiUserPlus
 } from 'react-icons/fi';
+import { debounce } from 'lodash';
 
 const RoomManagement = () => {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [floorFilter, setFloorFilter] = useState('all');
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [currentRoom, setCurrentRoom] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -34,6 +40,11 @@ const RoomManagement = () => {
     capacity: 4
   });
   const [allocatedUsers, setAllocatedUsers] = useState({});
+  
+  // Search user states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   useEffect(() => {
     fetchRooms();
@@ -211,11 +222,102 @@ const RoomManagement = () => {
     return roomNo.toString().charAt(0);
   };
 
-  // Get unique floor numbers for filter
-  const getFloors = () => {
-    const floors = new Set(rooms.map(room => getFloorFromRoomNo(room.roomNo)));
-    return Array.from(floors).sort();
+  // Instead of dynamically generating floor options, use static options
+  const floorOptions = [
+    { value: 'all', label: 'All Floors' },
+    { value: '1', label: 'Floor 1' },
+    { value: '2', label: 'Floor 2' },
+    { value: '3', label: 'Floor 3' },
+    { value: 'R', label: 'Rashmika' }
+  ];
+
+  // Function to search for users with debounce
+  const debouncedSearch = useCallback(
+    debounce(async (query) => {
+      if (!query || query.length < 2) {
+        setSearchResults([]);
+        setSearchLoading(false);
+        return;
+      }
+      
+      try {
+        setSearchLoading(true);
+        const { data } = await api.get('/users/search', { 
+          params: { 
+            query,
+            unallocated: true
+          } 
+        });
+        
+        setSearchResults(data);
+      } catch (error) {
+        console.error('Error searching users:', error);
+        toast.error('Failed to search users');
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 500),
+    []
+  );
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    debouncedSearch(query);
   };
+
+  // Open modal to add a user to a room
+  const openAddUserModal = (room) => {
+    setCurrentRoom(room);
+    setShowAddUserModal(true);
+    // Reset search
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  // Close add user modal
+  const closeAddUserModal = () => {
+    setShowAddUserModal(false);
+    setCurrentRoom(null);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  // Add user to room
+  const handleAddUserToRoom = async (userId) => {
+    if (!currentRoom) return;
+    
+    try {
+      const { data } = await api.post('/rooms/user', {
+        newId: userId,
+        roomNo: currentRoom.roomNo
+      });
+      
+      if (data.ok) {
+        toast.success('User added to room successfully');
+        fetchRooms();
+        closeAddUserModal();
+      } else {
+        toast.error(data.message || 'Failed to add user to room');
+      }
+    } catch (error) {
+      console.error('Error adding user to room:', error);
+      toast.error(error.response?.data?.message || 'Failed to add user to room');
+    }
+  };
+
+  // Filter rooms based on search and floor filter
+  const filteredRooms = rooms.filter(room => {
+    // Filter by floor
+    const matchesFloor = floorFilter === 'all' || getFloorFromRoomNo(room.roomNo) === floorFilter;
+    
+    // Filter by search query
+    const matchesSearch = !roomSearchQuery || 
+      room.roomNo.toLowerCase().includes(roomSearchQuery.toLowerCase());
+    
+    return matchesFloor && matchesSearch;
+  });
 
   return (
     <div className="container-fluid px-4 py-8 max-w-full">
@@ -464,16 +566,154 @@ const RoomManagement = () => {
         )}
       </AnimatePresence>
 
+      {/* Add User to Room Modal */}
+      <AnimatePresence>
+        {showAddUserModal && currentRoom && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+            onClick={closeAddUserModal}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Add User to Room {currentRoom.roomNo}
+                </h2>
+                <button
+                  onClick={closeAddUserModal}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Room Capacity: {currentRoom.allocatedPersons?.length || 0}/{currentRoom.capacity}
+                </p>
+              </div>
+              
+              <div className="relative mb-5">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiSearch className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  className="pl-10 pr-4 py-2 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="Search users by name, mobile..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                />
+                {searchLoading && (
+                  <div className="absolute right-3 top-2">
+                    <div className="animate-spin h-5 w-5 border-2 border-primary-500 rounded-full border-t-transparent"></div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                {searchResults.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                    {searchQuery.length > 0 ? "No users found" : "Search for users to add"}
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {searchResults.map(user => (
+                      <li 
+                        key={user._id} 
+                        className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                        onClick={() => handleAddUserToRoom(user._id)}
+                      >
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full overflow-hidden mr-3 bg-gray-200 dark:bg-gray-600">
+                            {user.photo ? (
+                              <img 
+                                src={user.photo} 
+                                alt={user.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center">
+                                <FiUser className="text-gray-500" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {user.name}
+                            </p>
+                            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                              <span className="truncate">{user.mobile}</span>
+                              <span className="mx-1">•</span>
+                              <span className="truncate">{user.field}</span>
+                            </div>
+                            {(user.group || user.level) && (
+                              <div className="flex mt-1 space-x-1">
+                                {user.group && (
+                                  <span className="px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 rounded">
+                                    {user.group}
+                                  </span>
+                                )}
+                                {user.level && (
+                                  <span className="px-1.5 py-0.5 text-xs bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200 rounded">
+                                    Level {user.level}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <FiPlus className="h-5 w-5 text-primary-500 ml-2" />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              
+              <div className="mt-5 flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={closeAddUserModal}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Card>
         <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4">
           <div>
             <CardTitle>Room Management</CardTitle>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              {rooms.length} rooms found
+              {filteredRooms.length} rooms found
             </p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-0">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiSearch className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                className="pl-10 pr-4 py-2 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Search room number..."
+                value={roomSearchQuery}
+                onChange={(e) => setRoomSearchQuery(e.target.value)}
+              />
+            </div>
+            
             <div className="flex items-center">
               <FiFilter className="mr-2 text-gray-500" />
               <select
@@ -481,9 +721,8 @@ const RoomManagement = () => {
                 onChange={(e) => setFloorFilter(e.target.value)}
                 className="py-2 px-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
               >
-                <option value="all">All Floors</option>
-                {getFloors().map(floor => (
-                  <option key={floor} value={floor}>Floor {floor}</option>
+                {floorOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>
@@ -503,7 +742,7 @@ const RoomManagement = () => {
               <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-primary-400 border-t-transparent"></div>
               <p className="mt-4 text-gray-600 dark:text-gray-400">Loading rooms...</p>
             </div>
-          ) : rooms.length === 0 ? (
+          ) : filteredRooms.length === 0 ? (
             <div className="text-center p-12 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
               <FiUsers className="h-12 w-12 mx-auto text-gray-400" />
               <p className="mt-4 text-gray-600 dark:text-gray-400">No rooms found.</p>
@@ -518,7 +757,7 @@ const RoomManagement = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {rooms.map((room) => (
+              {filteredRooms.map((room) => (
                 <motion.div
                   key={room._id}
                   layout
@@ -562,9 +801,34 @@ const RoomManagement = () => {
                     </div>
                     
                     <div>
-                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Allocated Persons</h4>
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-gray-900 dark:text-white font-medium">Allocated Persons</h4>
+                        {(room.allocatedPersons?.length || 0) < room.capacity && (
+                          <Button
+                            onClick={() => openAddUserModal(room)}
+                            size="sm"
+                            variant="outline"
+                            className="px-2 py-1 h-8"
+                            icon={<FiUserPlus className="w-4 h-4" />}
+                          >
+                            Add
+                          </Button>
+                        )}
+                      </div>
                       {!room.allocatedPersons || room.allocatedPersons.length === 0 ? (
-                        <p className="text-gray-500 italic">No one allocated yet</p>
+                        <div className="text-center py-4 border border-dashed border-gray-300 dark:border-gray-700 rounded">
+                          <FiUsers className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-gray-500 italic">No one allocated yet</p>
+                          <Button
+                            onClick={() => openAddUserModal(room)}
+                            size="sm"
+                            variant="outline"
+                            className="mt-2"
+                            icon={<FiUserPlus className="w-4 h-4" />}
+                          >
+                            Add User
+                          </Button>
+                        </div>
                       ) : (
                         <ul className="space-y-2">
                           {room.allocatedPersons.map((personId) => {
