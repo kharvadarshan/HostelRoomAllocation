@@ -9,7 +9,7 @@ cloudinary.config({
 export async function uploadImage(imageBuffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
     const uploadOptions = {
-      resource_type: 'image',
+      resource_type: 'image' as const,
       folder: 'hostel-users',
     };
 
@@ -22,4 +22,4 @@ export async function uploadImage(imageBuffer: Buffer): Promise<string> {
   });
 }
 
-export default cloudinary; 
+export default cloudinary;
