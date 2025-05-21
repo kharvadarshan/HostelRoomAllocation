@@ -43,29 +43,12 @@ function App() {
     }
   }, [dispatch]);
 
-  // Control splash screen display
-  useEffect(() => {
-    if (showSplash) {
-      // Show splash screen for 5 seconds only on initial app load
-      const timer = setTimeout(() => {
-        setShowSplash(false);
-        // Store in session that splash has been shown
-        sessionStorage.setItem('splashShown', 'true');
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [showSplash]);
-
-  // Check if splash has already been shown in this session
-  useEffect(() => {
-    if (sessionStorage.getItem('splashShown')) {
-      setShowSplash(false);
-    }
-  }, []);
+  const handleCloseSplash = () => {
+    setShowSplash(false);
+  };
 
   if (showSplash) {
-    return <SplashScreen />;
+    return <SplashScreen onClose={handleCloseSplash} />;
   }
 
   return (

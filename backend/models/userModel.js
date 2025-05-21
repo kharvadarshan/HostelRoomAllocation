@@ -17,7 +17,6 @@ const userSchema = mongoose.Schema(
       },
       cloudinaryId: {
         type: String,
-        required: true,
       },
       mobile: {
         type: String,
@@ -26,7 +25,6 @@ const userSchema = mongoose.Schema(
       },
       password: {
         type: String,
-        required: [true, 'Please add a password'],
       },
       room: {
         type: String,

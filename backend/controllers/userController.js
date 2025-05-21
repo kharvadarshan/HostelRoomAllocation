@@ -198,8 +198,28 @@ const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 
   if (user) {
-    // Delete image from cloudinary
-    await cloudinary.uploader.destroy(user.cloudinaryId);
+    // Only try to delete from cloudinary if cloudinaryId exists
+    if (user.cloudinaryId) {
+      try {
+        await cloudinary.uploader.destroy(user.cloudinaryId);
+      } catch (error) {
+        console.error('Error deleting image from cloudinary:', error);
+        // Continue with user deletion even if cloudinary deletion fails
+      }
+    }
+    
+    // If user has a room assigned, remove them from that room
+    if (user.room) {
+      const room = await Room.findOne({ roomNo: user.room });
+      if (room) {
+        await Room.findByIdAndUpdate(
+          room._id,
+          {
+            $pull: { allocatedPersons: user._id }
+          }
+        );
+      }
+    }
     
     await user.deleteOne();
     res.json({ message: "User removed" });
