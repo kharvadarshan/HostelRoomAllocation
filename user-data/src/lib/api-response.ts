@@ -32,4 +32,5 @@ export const ERROR_MESSAGES = {
   INTERNAL_SERVER_ERROR: 'Something went wrong, please try again later',
   REQUIRED_FIELDS: 'Please fill in all required fields',
   INVALID_REQUEST: 'Invalid request data',
+  DUPLICATE_MOBILE: 'This mobile number is already registered',
 }; 

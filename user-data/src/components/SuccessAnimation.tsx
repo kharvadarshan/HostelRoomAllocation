@@ -6,9 +6,10 @@ import { FiX } from 'react-icons/fi';
 
 interface SuccessAnimationProps {
   message?: string;
+  onClose?: () => void;
 }
 
-const SuccessAnimation = ({ message = "Registration Successful!" }: SuccessAnimationProps) => {
+const SuccessAnimation = ({ message = "Registration Successful!", onClose }: SuccessAnimationProps) => {
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -16,13 +17,8 @@ const SuccessAnimation = ({ message = "Registration Successful!" }: SuccessAnima
   }, []);
   
   const handleClose = () => {
-    // Try to close the window (may only work if window was opened via JavaScript)
-    if (typeof window !== 'undefined') {
-      try {
-        window.close();
-      } catch (error) {
-        console.error("Could not close window:", error);
-      }
+    if (onClose) {
+      onClose();
     }
   };
 
