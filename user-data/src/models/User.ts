@@ -23,6 +23,7 @@ const UserSchema = new Schema({
     type: String,
     required: [true, 'Please provide a mobile number'],
     trim: true,
+    unique: true,
   },
   photo: {
     type: String,

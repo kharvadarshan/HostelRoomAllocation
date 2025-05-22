@@ -20,6 +20,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [mobileError, setMobileError] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,6 +34,17 @@ export default function Home() {
       ...formData,
       [name]: value
     });
+
+    // Add real-time mobile number validation
+    if (name === 'mobile') {
+      if (value && !/^[0-9]*$/.test(value)) {
+        setMobileError('Please enter only numbers');
+      } else if (value && value.length !== 10) {
+        setMobileError('Mobile number must be 10 digits');
+      } else {
+        setMobileError(null);
+      }
+    }
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,6 +60,13 @@ export default function Home() {
     
     if (!formData.name || !formData.field || !formData.mobile || !photo) {
       toast.error('Please fill in all fields and upload a photo');
+      return;
+    }
+
+    // Add mobile number validation
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!mobileRegex.test(formData.mobile)) {
+      toast.error('Please enter a valid 10-digit mobile number');
       return;
     }
     
@@ -76,10 +95,27 @@ export default function Home() {
       
     } catch (error: any) {
       console.error('Registration error:', error);
-      toast.error(error.message || 'Something went wrong, please try again');
+      
+      // Show specific error message for duplicate mobile number
+      if (error.message.includes('already registered')) {
+        toast.error('This mobile number is already registered. Please use a different number.');
+      } else {
+        toast.error(error.message || 'Something went wrong, please try again');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClose = () => {
+    setSuccess(false);
+    setFormData({
+      name: '',
+      field: '',
+      mobile: '',
+    });
+    setPhoto(null);
+    setPhotoPreview(null);
   };
 
   // Use a simple div instead of the complete UI before client-side hydration
@@ -97,7 +133,7 @@ export default function Home() {
       />
       
       {success ? (
-        <SuccessAnimation />
+        <SuccessAnimation onClose={handleClose} />
       ) : (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -158,10 +194,18 @@ export default function Home() {
                     value={formData.mobile}
                     onChange={handleChange}
                     placeholder="Eg. 9638631366"
+                    pattern="[0-9]{10}"
+                    maxLength={10}
+                    title="Please enter a valid 10-digit mobile number"
                     required
-                    className="border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    className={`border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white ${
+                      mobileError ? 'border-red-500 dark:border-red-500' : ''
+                    }`}
                     icon={<FiPhone className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
                   />
+                  {mobileError && (
+                    <p className="text-sm text-red-500 mt-1">{mobileError}</p>
+                  )}
                 </div>
                 
                 <div className="space-y-4 pt-2">

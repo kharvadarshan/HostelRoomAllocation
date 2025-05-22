@@ -23,6 +23,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Check for existing mobile number
+    const existingUser = await User.findOne({ mobile });
+    if (existingUser) {
+      return createApiResponse({
+        statusCode: 400,
+        message: ERROR_MESSAGES.DUPLICATE_MOBILE,
+      });
+    }
+
     // Convert photo to buffer
     const bytes = await photo.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -46,6 +55,15 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Registration error:', error);
+    
+    // Handle MongoDB duplicate key error
+    if (error.code === 11000 && error.keyPattern?.mobile) {
+      return createApiResponse({
+        statusCode: 400,
+        message: ERROR_MESSAGES.DUPLICATE_MOBILE,
+      });
+    }
+
     return createApiResponse({
       statusCode: 500,
       message: ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
