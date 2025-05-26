@@ -9,8 +9,8 @@ export const names = [
   'Junarkar',
   'Nehru Hall',
   'SP',
+  'None',
 ];
-
 
 export const levels = [
   'A',

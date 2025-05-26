@@ -50,8 +50,9 @@ const userSchema = mongoose.Schema(
           'Junarkar',
           'Nehru Hall',
           'SP',
+          'None',
         ],
-        default: 'New A-B',
+        default: 'None',
       },
       role: {
         type: String,
