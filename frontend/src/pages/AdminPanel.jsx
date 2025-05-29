@@ -97,7 +97,7 @@ const AdminPanel = () => {
       name: user.name,
       field: user.field,
       mobile: user.mobile,
-      group: user.group || 'New A-B',
+      group: user.group || 'None',
       level: user.level || 'C',
       room: user.room || '',
       role: user.role || 'user'
