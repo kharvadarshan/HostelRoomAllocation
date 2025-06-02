@@ -4,9 +4,17 @@ import api from '../../api';
 // Async thunks
 export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const { data } = await api.get('/users');
+      const { page = 1, limit = 10, search = '', role = 'all' } = params;
+      const { data } = await api.get('/users', {
+        params: {
+          page,
+          limit,
+          search,
+          role
+        }
+      });
       return data;
     } catch (error) {
       return rejectWithValue(
@@ -58,7 +66,13 @@ export const updateUser = createAsyncThunk(
   'users/updateUser',
   async ({ id, userData }, { rejectWithValue }) => {
     try {
-      const { data } = await api.put(`/users/${id}`, userData);
+      const config = {
+        headers: {
+          'Content-Type': userData instanceof FormData ? 'multipart/form-data' : 'application/json',
+        },
+      };
+      
+      const { data } = await api.put(`/users/${id}`, userData, config);
       return data;
     } catch (error) {
       return rejectWithValue(
@@ -90,7 +104,13 @@ const initialState = {
   unallocatedUsersByLevel: {},
   selectedUser: null,
   loading: false,
-  error: null
+  error: null,
+  pagination: {
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0
+  }
 };
 
 // Slice
@@ -137,7 +157,8 @@ const userSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload;
+        state.users = action.payload.users;
+        state.pagination = action.payload.pagination;
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
@@ -245,5 +266,6 @@ export const selectUnallocatedUsersByLevel = (state) => state.users.unallocatedU
 export const selectSelectedUser = (state) => state.users.selectedUser;
 export const selectUsersLoading = (state) => state.users.loading;
 export const selectUsersError = (state) => state.users.error;
+export const selectPagination = (state) => state.users.pagination;
 
 export default userSlice.reducer; 

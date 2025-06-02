@@ -62,12 +62,52 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get all users
+// @desc    Get all users with pagination
 // @route   GET /api/users
 // @access  Private/Admin
 const getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({}).select("-password");
-  res.json(users);
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const searchTerm = req.query.search || '';
+  const filterRole = req.query.role || 'all';
+
+  // Calculate skip value for pagination
+  const skip = (page - 1) * limit;
+
+  // Build search query
+  let query = {};
+  
+  if (searchTerm) {
+    query.$or = [
+      { name: { $regex: searchTerm, $options: 'i' } },
+      { field: { $regex: searchTerm, $options: 'i' } },
+      { mobile: { $regex: searchTerm, $options: 'i' } }
+    ];
+  }
+
+  if (filterRole !== 'all') {
+    query.role = filterRole;
+  }
+
+  // Get total count for pagination
+  const total = await User.countDocuments(query);
+
+  // Fetch paginated users
+  const users = await User.find(query)
+    .select('-password')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  res.json({
+    users,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit)
+    }
+  });
 });
 
 // @desc    Get user by ID
@@ -157,19 +197,27 @@ const updateUser = asyncHandler(async (req, res) => {
       user.room = "";
     }
 
-    // If there's a new photo upload
-    // if (req.file) {
-    //   // Delete the previous image from cloudinary
-    //   await cloudinary.uploader.destroy(user.cloudinaryId);
-      
-    //   // Upload new image
-    //   const result = await cloudinary.uploader.upload(req.file.path, {
-    //     folder: "user_photos",
-    //   });
-      
-    //   user.photo = result.secure_url;
-    //   user.cloudinaryId = result.public_id;
-    // }
+    // Handle photo update if a new photo is uploaded
+    if (req.file) {
+      try {
+        // Delete the previous image from cloudinary if it exists
+        if (user.cloudinaryId) {
+          await cloudinary.uploader.destroy(user.cloudinaryId);
+        }
+        
+        // Upload new image
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "user_photos",
+        });
+        
+        user.photo = result.secure_url;
+        user.cloudinaryId = result.public_id;
+      } catch (error) {
+        console.error('Error updating photo:', error);
+        res.status(400);
+        throw new Error('Error updating photo');
+      }
+    }
 
     const updatedUser = await user.save();
 
@@ -269,21 +317,33 @@ const deleteUserPhoto = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
-    // Delete the image from cloudinary
-    await cloudinary.uploader.destroy(user.cloudinaryId);
-    
-    // Set a default photo
-    const result = await cloudinary.uploader.upload(
-      "https://res.cloudinary.com/demo/image/upload/v1612228187/samples/people/default-profile.jpg",
-      { folder: "user_photos" }
-    );
-    
-    user.photo = result.secure_url;
-    user.cloudinaryId = result.public_id;
-    
-    await user.save();
-    
-    res.json({ message: "Photo removed and set to default" });
+    try {
+      // Only try to delete from cloudinary if user has a cloudinaryId
+      if (user.cloudinaryId) {
+        await cloudinary.uploader.destroy(user.cloudinaryId);
+      }
+      
+      // Upload a default avatar to cloudinary
+      const result = await cloudinary.uploader.upload(
+        "https://ui-avatars.com/api/?name=" + encodeURIComponent(user.name) + "&background=random",
+        { folder: "user_photos" }
+      );
+      
+      // Update user with new default photo
+      user.photo = result.secure_url;
+      user.cloudinaryId = result.public_id;
+      
+      await user.save();
+      
+      res.json({ 
+        message: "Photo removed and set to default",
+        photo: user.photo
+      });
+    } catch (error) {
+      console.error('Error in deleteUserPhoto:', error);
+      res.status(500);
+      throw new Error('Error removing photo: ' + error.message);
+    }
   } else {
     res.status(404);
     throw new Error("User not found");

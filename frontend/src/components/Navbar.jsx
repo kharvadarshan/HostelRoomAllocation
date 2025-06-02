@@ -81,15 +81,6 @@ const Navbar = () => {
                       variant="ghost"
                       size="sm"
                       className="mr-2"
-                      icon={<FiShield />}
-                      onClick={() => navigate('/admin')}
-                    >
-                      Admin
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mr-2"
                       icon={<FiHome />}
                       onClick={() => navigate('/rooms')}
                     >
@@ -103,6 +94,15 @@ const Navbar = () => {
                       onClick={() => navigate('/room-allocation')}
                     >
                       Allocation
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mr-2"
+                        icon={<FiShield />}
+                        onClick={() => navigate('/admin')}
+                    >
+                      Admin
                     </Button>
                   </>
                 )}
@@ -181,14 +181,14 @@ const Navbar = () => {
                           </Link>
                         )}
                         
-                        <Link 
-                          to="/settings" 
-                          className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          <FiSettings className="mr-2" />
-                          Settings
-                        </Link>
+                        {/*<Link */}
+                        {/*  to="/settings" */}
+                        {/*  className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"*/}
+                        {/*  onClick={() => setIsDropdownOpen(false)}*/}
+                        {/*>*/}
+                        {/*  <FiSettings className="mr-2" />*/}
+                        {/*  Settings*/}
+                        {/*</Link>*/}
                         
                         <hr className="my-1 border-gray-200 dark:border-gray-700" />
                         
