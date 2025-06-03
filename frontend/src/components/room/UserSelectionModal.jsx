@@ -99,6 +99,7 @@ const UserSelectionModal = ({isOpen, onClose, user, onConfirm}) => {
                     ref={scratchCardRef}
                     width={300}
                     height={300}
+                    willReadFrequently={true}
                     image={scratchCardImage()}
                     finishPercent={50}
                     onComplete={handleScratchComplete}

@@ -28,7 +28,7 @@ export function SplashScreen({ onClose }) {
           <p className="text-2xl md:text-4xl lg:text-7xl text-white font-bold inter-var text-center">
             Soldiers of GOD
           </p>
-          <p className="text-base md:text-3xl lg:text-4xl mt-4 text-white font-normal inter-var text-center">
+          <p className="text-base md:text-3xl lg:text-4xl mt-4 font-serif text-white font-normal inter-var text-center">
             Shreekar hostel  
           </p>
         </WavyBackground>

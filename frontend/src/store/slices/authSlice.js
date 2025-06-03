@@ -107,17 +107,14 @@ export const updatePhoto = createAsyncThunk(
 
 export const deletePhoto = createAsyncThunk(
   'auth/deletePhoto',
-  async (_, { rejectWithValue, dispatch }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      await api.delete('/users/photo');
-      
-      // Refresh the user profile to get updated data
-      const { data } = await api.get('/auth/profile');
+      const { data } = await api.delete('/users/photo');
       return data;
     } catch (error) {
       console.error('Delete photo error:', error.response?.data || error.message);
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to delete photo'
+        error.response?.data || { message: 'Failed to delete photo' }
       );
     }
   }
@@ -231,7 +228,9 @@ const authSlice = createSlice({
       })
       .addCase(deletePhoto.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = { ...state.user, ...action.payload };
+        if (state.user) {
+          state.user.photo = action.payload.photo;
+        }
       })
       .addCase(deletePhoto.rejected, (state, action) => {
         state.loading = false;

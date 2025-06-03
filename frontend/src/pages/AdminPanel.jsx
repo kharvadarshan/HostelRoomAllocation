@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { 
   selectUsers, 
   selectUsersLoading, 
+  selectPagination,
   fetchUsers, 
   deleteUser,
   updateUser,
@@ -33,11 +34,13 @@ const AdminPanel = () => {
   const dispatch = useDispatch();
   const users = useSelector(selectUsers);
   const loading = useSelector(selectUsersLoading);
+  const pagination = useSelector(selectPagination);
   const selectedUser = useSelector(selectSelectedUser);
   const [showFullPhoto, setShowFullPhoto] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [editUserData, setEditUserData] = useState({
     name: '',
     field: '',
@@ -48,11 +51,32 @@ const AdminPanel = () => {
     role: 'user'
   });
   const [rooms, setRooms] = useState([]);
+  const [showEditPhotoModal, setShowEditPhotoModal] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    dispatch(fetchUsers());
+    loadUsers();
     fetchRooms();
-  }, [dispatch]);
+  }, [dispatch, currentPage, filterRole]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadUsers();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const loadUsers = () => {
+    dispatch(fetchUsers({
+      page: currentPage,
+      limit: 10,
+      search: searchTerm,
+      role: filterRole
+    }));
+  };
 
   const fetchRooms = async () => {
     try {
@@ -117,14 +141,29 @@ const AdminPanel = () => {
     if (!selectedUser) return;
     
     try {
+      const formData = new FormData();
+      formData.append('name', editUserData.name);
+      formData.append('field', editUserData.field);
+      formData.append('mobile', editUserData.mobile);
+      formData.append('group', editUserData.group);
+      formData.append('level', editUserData.level);
+      formData.append('room', editUserData.room);
+      formData.append('role', editUserData.role);
+      
+      // Append photo if one is selected
+      if (selectedPhoto) {
+        formData.append('photo', selectedPhoto);
+      }
+      
       const resultAction = await dispatch(updateUser({ 
         id: selectedUser._id, 
-        userData: editUserData 
+        userData: formData 
       }));
       
       if (updateUser.fulfilled.match(resultAction)) {
         toast.success('User updated successfully');
         setShowEditModal(false);
+        setSelectedPhoto(null);
       }
     } catch (error) {
       console.error('Error updating user:', error);
@@ -132,17 +171,172 @@ const AdminPanel = () => {
     }
   };
 
-  // Filter users by search term and role
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = !searchTerm || 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.field.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.mobile.includes(searchTerm);
+  const handlePhotoClick = (photo) => {
+    setShowEditPhotoModal(true);
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedPhoto(file);
+      setShowEditPhotoModal(false);
+    }
+  };
+
+  const triggerPhotoUpload = (e) => {
+    e.stopPropagation(); // Prevent modal from closing
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    } else {
+      console.error('File input ref not found');
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  // Add this new component for pagination
+  const Pagination = () => {
+    const { page, pages, total } = pagination;
     
-    const matchesRole = filterRole === 'all' || user.role === filterRole;
-    
-    return matchesSearch && matchesRole;
-  });
+    if (total === 0) return null;
+
+    return (
+      <div className="mt-6 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6">
+        <div className="flex-1 flex justify-between sm:hidden">
+          <button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1}
+            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+              page === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page === pages}
+            className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+              page === pages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Showing <span className="font-medium">{((page - 1) * 10) + 1}</span> to{' '}
+              <span className="font-medium">
+                {Math.min(page * 10, total)}
+              </span>{' '}
+              of <span className="font-medium">{total}</span> results
+            </p>
+          </div>
+          <div>
+            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              <button
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page === 1}
+                className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                  page === 1
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                Previous
+              </button>
+              {[...Array(pages)].map((_, index) => (
+                <button
+                  key={index + 1}
+                  onClick={() => handlePageChange(index + 1)}
+                  className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                    page === index + 1
+                      ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page === pages}
+                className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                  page === pages
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                Next
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Add Photo Edit Modal Component
+  const PhotoEditModal = () => {
+    if (!showEditPhotoModal || !selectedUser) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+        onClick={() => setShowEditPhotoModal(false)}
+      >
+        <motion.div 
+          className="relative bg-white dark:bg-gray-800 p-6 rounded-lg max-w-2xl max-h-[90vh] overflow-auto"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => setShowEditPhotoModal(false)}
+            className="absolute top-2 right-2 bg-white dark:bg-gray-700 rounded-full p-1 shadow-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+          >
+            <FiX className="w-5 h-5" />
+          </button>
+          
+          <div className="flex flex-col items-center">
+            <img 
+              src={selectedUser.photo} 
+              alt={selectedUser.name} 
+              className="max-w-full max-h-[60vh] object-contain rounded-lg mb-4"
+            />
+            
+            <div className="flex gap-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handlePhotoChange}
+              />
+              <Button
+                onClick={triggerPhotoUpload}
+                variant="outline"
+                className="mt-4"
+              >
+                Change Photo
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -255,9 +449,12 @@ const AdminPanel = () => {
               </div>
 
               <div className="mb-4 flex justify-center">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary-500">
+                <div 
+                  className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary-500 cursor-pointer hover:border-primary-600 transition-all"
+                  onClick={() => handlePhotoClick(selectedUser.photo)}
+                >
                   <img 
-                    src={selectedUser.photo} 
+                    src={selectedPhoto ? URL.createObjectURL(selectedPhoto) : selectedUser.photo} 
                     alt={selectedUser.name} 
                     className="w-full h-full object-cover"
                   />
@@ -265,6 +462,14 @@ const AdminPanel = () => {
               </div>
               
               <form onSubmit={(e) => { e.preventDefault(); handleUpdateUser(); }}>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                />
+                
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -393,30 +598,22 @@ const AdminPanel = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Photo Edit Modal */}
+      <AnimatePresence>
+        <PhotoEditModal />
+      </AnimatePresence>
       
       <Card>
         <CardHeader className="flex flex-col sm:flex-row justify-between items-center pb-4">
           <div>
             <CardTitle>User Management</CardTitle>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              {filteredUsers.length} users found
+              {users.length} users found
             </p>
           </div>
           
           <div className="flex mt-4 sm:mt-0 gap-2">
-            {/*<div className="relative">*/}
-            {/*  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">*/}
-            {/*    <FiSearch className="h-5 w-5 text-gray-400" />*/}
-            {/*  </div>*/}
-            {/*  <input*/}
-            {/*    type="text"*/}
-            {/*    className="pl-10 pr-4 py-2 w-full min-w-[200px] bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"*/}
-            {/*    placeholder="Search users..."*/}
-            {/*    value={searchTerm}*/}
-            {/*    onChange={(e) => setSearchTerm(e.target.value)}*/}
-            {/*  />*/}
-            {/*</div>*/}
-            
             <Button
               onClick={() => dispatch(fetchUsers())}
               disabled={loading}
@@ -462,106 +659,109 @@ const AdminPanel = () => {
               <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-primary-400 border-t-transparent"></div>
               <p className="mt-4 text-gray-600 dark:text-gray-400">Loading users...</p>
             </div>
-          ) : filteredUsers.length === 0 ? (
+          ) : users.length === 0 ? (
             <div className="text-center p-12 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
               <FiUser className="h-10 w-10 mx-auto text-gray-400" />
               <p className="mt-4 text-gray-600 dark:text-gray-400">No users found.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Field
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Mobile
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Room
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Group
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Level
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
-                  {filteredUsers.map((user) => (
-                    <motion.tr 
-                      key={user._id}
-                      layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div 
-                            className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer ring-2 ring-primary-500 hover:ring-primary-600 transition-all"
-                            onClick={() => openPhotoModal(user)}
-                          >
-                            <img 
-                              src={user.photo} 
-                              alt={user.name} 
-                              className="h-full w-full object-cover"
-                            />
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        User
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Field
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Mobile
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Room
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Group
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Level
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                    {users.map((user) => (
+                      <motion.tr 
+                        key={user._id}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div 
+                              className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer ring-2 ring-primary-500 hover:ring-primary-600 transition-all"
+                              onClick={() => openPhotoModal(user)}
+                            >
+                              <img 
+                                src={user.photo} 
+                                alt={user.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</div>
+                            </div>
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-gray-200">{user.field}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-gray-200">{user.mobile}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-gray-200">{ user.room ? user.room : "None"}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-gray-200">{ user.group || "Not Set"}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-gray-200">{ user.level || "Not Set"}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              onClick={() => openEditModal(user)}
+                              variant="outline"
+                              size="sm"
+                              icon={<FiEdit2 />}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              onClick={() => handleDelete(user._id)}
+                              variant="danger"
+                              size="sm"
+                              icon={<FiTrash2 />}
+                            >
+                              Delete
+                            </Button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-gray-200">{user.field}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-gray-200">{user.mobile}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-gray-200">{ user.room ? user.room : "None"}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-gray-200">{ user.group || "Not Set"}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-gray-200">{ user.level || "Not Set"}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            onClick={() => openEditModal(user)}
-                            variant="outline"
-                            size="sm"
-                            icon={<FiEdit2 />}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => handleDelete(user._id)}
-                            variant="danger"
-                            size="sm"
-                            icon={<FiTrash2 />}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination />
+            </>
           )}
         </CardContent>
       </Card>
