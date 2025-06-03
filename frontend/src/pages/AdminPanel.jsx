@@ -172,15 +172,12 @@ const AdminPanel = () => {
   };
 
   const handlePhotoClick = (photo) => {
-    console.log('Photo clicked, opening modal');
     setShowEditPhotoModal(true);
   };
 
   const handlePhotoChange = (e) => {
-    console.log('Photo change triggered', e.target.files);
     const file = e.target.files[0];
     if (file) {
-      console.log('New photo selected:', file.name);
       setSelectedPhoto(file);
       setShowEditPhotoModal(false);
     }
@@ -188,7 +185,6 @@ const AdminPanel = () => {
 
   const triggerPhotoUpload = (e) => {
     e.stopPropagation(); // Prevent modal from closing
-    console.log('Triggering photo upload');
     if (fileInputRef.current) {
       fileInputRef.current.click();
     } else {

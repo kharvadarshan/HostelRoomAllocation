@@ -34,6 +34,7 @@ const RoomAllocation = () => {
     showUserPopup,
 
     // Methods
+    setFilteredUsers,
     setSelectedGroup,
     setSelectedLevel,
     handleUserSelected,
@@ -109,6 +110,7 @@ const RoomAllocation = () => {
                             isSelecting={isSelecting}
                             selectionComplete={selectionComplete}
                             filteredUsers={filteredUsers}
+                            setFilteredUsers={setFilteredUsers}
                             currentRoom={currentRoom}
                             startUserSelection={startUserSelection}
                             onUserSelected={handleUserSelected}
