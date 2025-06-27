@@ -551,15 +551,15 @@ const RoomManagement = () => {
                   </div>
                 )}
                 
-                {selectedUser.level && (
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                    <FiLayers className="text-primary-500 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Level</p>
-                      <p>Level {selectedUser.level}</p>
-                    </div>
-                  </div>
-                )}
+                {/*{selectedUser.level && (*/}
+                {/*  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">*/}
+                {/*    <FiLayers className="text-primary-500 flex-shrink-0" />*/}
+                {/*    <div>*/}
+                {/*      <p className="text-sm text-gray-500 dark:text-gray-400">Level</p>*/}
+                {/*      <p>Level {selectedUser.level}</p>*/}
+                {/*    </div>*/}
+                {/*  </div>*/}
+                {/*)}*/}
                 
                 {selectedUser.room && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -674,18 +674,18 @@ const RoomManagement = () => {
                               <span className="mx-1">•</span>
                               <span className="truncate">{user.field}</span>
                             </div>
-                            {(user.group || user.level) && (
+                            {(user.group ) && (
                               <div className="flex mt-1 space-x-1">
                                 {user.group && (
                                   <span className="px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 rounded">
                                     {user.group}
                                   </span>
                                 )}
-                                {user.level && (
-                                  <span className="px-1.5 py-0.5 text-xs bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200 rounded">
-                                    Level {user.level}
-                                  </span>
-                                )}
+                                {/*{user.level && (*/}
+                                {/*  <span className="px-1.5 py-0.5 text-xs bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200 rounded">*/}
+                                {/*    Level {user.level}*/}
+                                {/*  </span>*/}
+                                {/*)}*/}
                               </div>
                             )}
                           </div>
@@ -897,11 +897,11 @@ const RoomManagement = () => {
                                                 {user.group}
                                               </span>
                                             )}
-                                            {user.level && (
-                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200">
-                                                Level {user.level}
-                                              </span>
-                                            )}
+                                            {/*{user.level && (*/}
+                                            {/*  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200">*/}
+                                            {/*    Level {user.level}*/}
+                                            {/*  </span>*/}
+                                            {/*)}*/}
                                           </div>
                                         )}
                                       </div>

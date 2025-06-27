@@ -381,12 +381,12 @@ const UserDashboard = () => {
                   </span>
                 )}
                 
-                {user.level && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800 dark:bg-secondary-900 dark:text-secondary-200">
-                    <FiLayers className="mr-1" />
-                    Level {user.level}
-                  </span>
-                )}
+                {/*{user.level && (*/}
+                {/*  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800 dark:bg-secondary-900 dark:text-secondary-200">*/}
+                {/*    <FiLayers className="mr-1" />*/}
+                {/*    Level {user.level}*/}
+                {/*  </span>*/}
+                {/*)}*/}
               </div>
               </div>
               

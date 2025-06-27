@@ -159,13 +159,13 @@ const UserSelectionModal = ({isOpen, onClose, user, onConfirm}) => {
                     </span>
                     )}
 
-                    {user.level && (
-                        <span
-                            className="inline-block bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200 text-lg px-4 py-2 rounded-full">
-                      <FiLayers className="inline mr-1"/>
-                      Level {user.level}
-                    </span>
-                    )}
+                    {/*{user.level && (*/}
+                    {/*    <span*/}
+                    {/*        className="inline-block bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200 text-lg px-4 py-2 rounded-full">*/}
+                    {/*  <FiLayers className="inline mr-1"/>*/}
+                    {/*  Level {user.level}*/}
+                    {/*</span>*/}
+                    {/*)}*/}
 
                     {user.mobile && (
                         <span
