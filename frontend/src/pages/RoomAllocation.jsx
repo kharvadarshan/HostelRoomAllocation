@@ -45,6 +45,7 @@ const RoomAllocation = () => {
     loadUnallocatedUsers,
     closeUserPopup,
     setCurrentFloor,
+    goToSpecificRoom,
   } = useRoomAllocationState();
 
   return (
@@ -87,6 +88,7 @@ const RoomAllocation = () => {
                     loading={loading}
                     isSelecting={isSelecting}
                     selectionComplete={selectionComplete}
+                    goToSpecificRoom={goToSpecificRoom}
                 />
               </CardHeader>
 

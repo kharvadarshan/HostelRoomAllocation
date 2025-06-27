@@ -9,8 +9,6 @@ const useRoomAllocationState = () => {
   // State for rooms
   const [rooms, setRooms] = useState([]);
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
-  const [floors, setFloors] = useState([]);
-  const [currentFloor, setCurrentFloor] = useState('');
   const [loading, setLoading] = useState(true);
 
   // State for filters
@@ -78,98 +76,48 @@ const useRoomAllocationState = () => {
     }
   }, [unallocatedUsers, selectedGroup, selectedLevel]);
 
-  // Load floors and rooms on mount
+  // Fetch all rooms on mount
   useEffect(() => {
-    fetchFloors();
+    const fetchAllRooms = async () => {
+      try {
+        setLoading(true);
+        const { data } = await api.get('/rooms');
+        if (data.ok) {
+          // Sort rooms by room number (handle R rooms at the end)
+          const sortedRooms = data.rooms.sort((a, b) => {
+            const aNum = isNaN(Number(a.roomNo)) ? 1000 + Number(a.roomNo.replace(/\D/g, '')) : Number(a.roomNo);
+            const bNum = isNaN(Number(b.roomNo)) ? 1000 + Number(b.roomNo.replace(/\D/g, '')) : Number(b.roomNo);
+            return aNum - bNum;
+          });
+          setRooms(sortedRooms);
+          setCurrentRoomIndex(0);
+          // Collect user IDs from all allocated persons
+          const userIds = [];
+          sortedRooms.forEach(room => {
+            if (room.allocatedPersons && room.allocatedPersons.length > 0) {
+              userIds.push(...room.allocatedPersons);
+            }
+          });
+          if (userIds.length > 0) {
+            fetchAllocatedUsers(userIds);
+          }
+        } else {
+          toast.error(data.message || 'Failed to fetch rooms');
+        }
+      } catch (error) {
+        console.error('Error fetching rooms:', error);
+        toast.error('Failed to fetch rooms');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllRooms();
   }, []);
-
-  // Load rooms when floor changes
-  useEffect(() => {
-    if (currentFloor) {
-      fetchRoomsForFloor(currentFloor);
-    }
-  }, [currentFloor]);
 
   // Update filtered users when filters change
   useEffect(() => {
     fetchUnallocatedUsers();
   }, [selectedGroup, selectedLevel]);
-
-  const fetchFloors = async () => {
-    try {
-      setLoading(true);
-      const {data} = await api.get('/rooms');
-
-      if (data.ok) {
-        // Extract unique floor numbers from rooms
-        const floorSet = new Set();
-
-        data.rooms.forEach(room => {
-          const roomNo = room.roomNo.toString();
-          if (roomNo.startsWith('R')) {
-            floorSet.add('R');
-          } else {
-            floorSet.add(roomNo.charAt(0));
-          }
-        });
-
-        const sortedFloors = Array.from(floorSet).sort((a, b) => {
-          if (a === 'R') return 1;
-          if (b === 'R') return -1;
-          return a - b;
-        });
-
-        setFloors(sortedFloors);
-
-        if (sortedFloors.length > 0) {
-          setCurrentFloor(sortedFloors[0]);
-        }
-      } else {
-        toast.error(data.message || 'Failed to fetch rooms');
-      }
-    } catch (error) {
-      console.error('Error fetching floors:', error);
-      toast.error('Failed to fetch floors');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchRoomsForFloor = async (floor) => {
-    try {
-      setLoading(true);
-      const {data} = await api.get(`/rooms`, {
-        params: {floor},
-      });
-
-      if (data.ok) {
-        // Sort rooms by room number
-        const sortedRooms = data.rooms.sort((a, b) => a.roomNo - b.roomNo);
-        setRooms(sortedRooms);
-        setCurrentRoomIndex(0);
-
-        // Collect user IDs from all allocated persons
-        const userIds = [];
-        sortedRooms.forEach(room => {
-          if (room.allocatedPersons && room.allocatedPersons.length > 0) {
-            userIds.push(...room.allocatedPersons);
-          }
-        });
-
-        // Fetch allocated users' details
-        if (userIds.length > 0) {
-          fetchAllocatedUsers(userIds);
-        }
-      } else {
-        toast.error(data.message || 'Failed to fetch rooms');
-      }
-    } catch (error) {
-      console.error('Error fetching rooms:', error);
-      toast.error('Failed to fetch rooms');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchAllocatedUsers = async (userIds) => {
     try {
@@ -432,14 +380,8 @@ const useRoomAllocationState = () => {
 
     if (currentRoomIndex < rooms.length - 1) {
       setCurrentRoomIndex(currentRoomIndex + 1);
-    } else if (floors.length > 0) {
-      // Move to next floor if available
-      const currentFloorIndex = floors.indexOf(currentFloor);
-      if (currentFloorIndex < floors.length - 1) {
-        setCurrentFloor(floors[currentFloorIndex + 1]);
-      } else {
-        toast.info('Reached the last room on the last floor');
-      }
+    } else if (rooms.length > 0) {
+      toast.info('Reached the last room');
     }
   };
 
@@ -451,29 +393,8 @@ const useRoomAllocationState = () => {
 
     if (currentRoomIndex > 0) {
       setCurrentRoomIndex(currentRoomIndex - 1);
-    } else if (floors.length > 0) {
-      // Move to previous floor if available
-      const currentFloorIndex = floors.indexOf(currentFloor);
-      if (currentFloorIndex > 0) {
-        // Set to the previous floor
-        const prevFloor = floors[currentFloorIndex - 1];
-        setCurrentFloor(prevFloor);
-
-        // Need to ensure we have rooms for that floor and set index to the last room
-        api.get(`/rooms`, {
-          params: {floor: prevFloor},
-        }).then(({data}) => {
-          if (data.ok && data.rooms.length > 0) {
-            const sortedRooms = data.rooms.sort((a, b) => a.roomNo - b.roomNo);
-            setRooms(sortedRooms);
-            setCurrentRoomIndex(sortedRooms.length - 1);
-          }
-        }).catch(error => {
-          console.error('Error fetching previous floor rooms:', error);
-        });
-      } else {
-        toast.success('Already at the first room on the first floor');
-      }
+    } else if (rooms.length > 0) {
+      toast.success('Already at the first room');
     }
   };
 
@@ -601,6 +522,16 @@ const useRoomAllocationState = () => {
       setShowConfetti(false);
     }, 300);
   };
+  
+  const goToSpecificRoom = (roomNo) => {
+    if (!roomNo) return;
+    const index = rooms.findIndex(room => String(room.roomNo).toLowerCase() === String(roomNo).toLowerCase());
+    if (index !== -1) {
+      setCurrentRoomIndex(index);
+    } else {
+      toast.error(`Room ${roomNo} not found`);
+    }
+  };
 
   // Is room at capacity
   const isRoomFull = rooms[currentRoomIndex] &&
@@ -612,8 +543,6 @@ const useRoomAllocationState = () => {
     // State
     rooms,
     currentRoomIndex,
-    floors,
-    currentFloor,
     loading,
     selectedGroup,
     selectedLevel,
@@ -642,7 +571,7 @@ const useRoomAllocationState = () => {
     allocateSelectedUser,
     loadUnallocatedUsers,
     closeUserPopup,
-    setCurrentFloor,
+    goToSpecificRoom
   };
 };
 
