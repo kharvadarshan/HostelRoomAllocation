@@ -39,11 +39,11 @@ const RoomOccupants = ({ currentRoom, allocatedUsersMap = {} }) => {
                               {user.group}
                             </span>
                           )}
-                          {user.level && (
-                            <span className="px-3 py-1 bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200 text-xs rounded-full">
-                              Level {user.level}
-                            </span>
-                          )}
+                          {/*{user.level && (*/}
+                          {/*  <span className="px-3 py-1 bg-secondary-100 dark:bg-secondary-900 text-secondary-800 dark:text-secondary-200 text-xs rounded-full">*/}
+                          {/*    Level {user.level}*/}
+                          {/*  </span>*/}
+                          {/*)}*/}
                         </div>
                       </>
                     )}
