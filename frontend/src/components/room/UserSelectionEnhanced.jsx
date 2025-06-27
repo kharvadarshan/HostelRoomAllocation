@@ -1,9 +1,11 @@
 import React, {useState} from 'react';
 import {Button} from '../ui/Button';
+import {Input} from '../ui/Input';
 import {FiUser} from 'react-icons/fi';
 import ScratchCardGrid from './ScratchCardGrid';
 import {toast} from 'react-hot-toast';
 import {cryptoShuffle} from '@/utils/cryptoShuffle.js';
+import api from '@/api/index.js';
 
 const UserSelectionEnhanced = ({
   isSelecting,
@@ -16,9 +18,11 @@ const UserSelectionEnhanced = ({
   usersLoading,
 }) => {
   const [showCards, setShowCards] = useState(false);
+  const [chitthiNumber, setChitthiNumber] = useState(null);
 
   // Begin selection process
   const handleStartSelection = () => {
+
     if (filteredUsers.length === 0) {
       toast.error('No users available for selection');
       return;
@@ -42,6 +46,26 @@ const UserSelectionEnhanced = ({
     console.log('User card selected:', user.name);
     onUserSelected(user);
     setShowCards(false);
+  };
+
+  const onNumberEntered = async  () => {
+    //get user from number
+    try {
+      const response = await api.get(`users/chitthi/${chitthiNumber}`)
+      const data = await response.data;
+      if(!data || !data.ok){
+        toast.error(data.message || 'No user with given chitthi number');
+      }else{
+        handleCardSelect(data.user);
+        setChitthiNumber('');
+      }
+      
+    }catch (error) {
+      console.log( "Error to get user " ,error);
+      toast.error(error.response.data.message || 'No user with given chitthi number');
+    }
+    
+
   };
 
   return (
@@ -68,8 +92,15 @@ const UserSelectionEnhanced = ({
         )}
 
         <div className="flex gap-4">
+
+          <Input
+              placeholder="Enter a number"
+              value={chitthiNumber}
+              onChange={(e) => setChitthiNumber(e.target.value)}
+          />
+
           <Button
-              onClick={handleStartSelection}
+              onClick={onNumberEntered}
               disabled={
                   usersLoading ||
                   !currentRoom ||
@@ -82,18 +113,9 @@ const UserSelectionEnhanced = ({
               size="lg"
               icon={<FiUser/>}
           >
-            Select User for Allocation
+            Get Bhai
           </Button>
         </div>
-
-        <p className="text-sm text-gray-500 mt-3">
-          {filteredUsers.length} unallocated {filteredUsers.length === 1
-            ? 'user'
-            : 'users'} available
-          {currentRoom?.capacity && currentRoom?.allocatedPersons && (
-              <span> • Room capacity: {currentRoom.allocatedPersons.length}/{currentRoom.capacity}</span>
-          )}
-        </p>
       </div>
   );
 };

@@ -1,13 +1,13 @@
-import asyncHandler from "express-async-handler";
-import User from "../models/userModel.js";
-import cloudinary from "../config/cloudinary.js";
-import jwt from "jsonwebtoken";
-import Room from "../models/roomModel.js";
+import asyncHandler from 'express-async-handler';
+import User from '../models/userModel.js';
+import cloudinary from '../config/cloudinary.js';
+import jwt from 'jsonwebtoken';
+import Room from '../models/roomModel.js';
 
 // Generate JWT
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
+  return jwt.sign({id}, process.env.JWT_SECRET, {
+    expiresIn: '30d',
   });
 };
 
@@ -15,25 +15,25 @@ const generateToken = (id) => {
 // @route   POST /api/users
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, field, mobile, password } = req.body;
-  console.log("Body : ", req.body);
+  const {name, field, mobile, password} = req.body;
+  console.log('Body : ', req.body);
 
   if (!name || !field || !mobile || !password || !req.file) {
     res.status(400);
-    throw new Error("Please fill in all fields and upload a photo");
+    throw new Error('Please fill in all fields and upload a photo');
   }
 
   // Check if user exists
-  const userExists = await User.findOne({ mobile });
+  const userExists = await User.findOne({mobile});
 
   if (userExists) {
     res.status(400);
-    throw new Error("mobile already exists");
+    throw new Error('mobile already exists');
   }
 
   // Upload image to cloudinary
   const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "user_photos",
+    folder: 'user_photos',
   });
 
   const user = await User.create({
@@ -43,7 +43,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password,
     photo: result.secure_url,
     cloudinaryId: result.public_id,
-    role: "user", // Default role
+    role: 'user', // Default role
   });
 
   if (user) {
@@ -58,7 +58,7 @@ const registerUser = asyncHandler(async (req, res) => {
     });
   } else {
     res.status(400);
-    throw new Error("Invalid user data");
+    throw new Error('Invalid user data');
   }
 });
 
@@ -76,12 +76,12 @@ const getUsers = asyncHandler(async (req, res) => {
 
   // Build search query
   let query = {};
-  
+
   if (searchTerm) {
     query.$or = [
-      { name: { $regex: searchTerm, $options: 'i' } },
-      { field: { $regex: searchTerm, $options: 'i' } },
-      { mobile: { $regex: searchTerm, $options: 'i' } }
+      {name: {$regex: searchTerm, $options: 'i'}},
+      {field: {$regex: searchTerm, $options: 'i'}},
+      {mobile: {$regex: searchTerm, $options: 'i'}},
     ];
   }
 
@@ -93,11 +93,11 @@ const getUsers = asyncHandler(async (req, res) => {
   const total = await User.countDocuments(query);
 
   // Fetch paginated users
-  const users = await User.find(query)
-    .select('-password')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+  const users = await User.find(query).
+      select('-password').
+      sort({createdAt: -1}).
+      skip(skip).
+      limit(limit);
 
   res.json({
     users,
@@ -105,8 +105,8 @@ const getUsers = asyncHandler(async (req, res) => {
       page,
       limit,
       total,
-      pages: Math.ceil(total / limit)
-    }
+      pages: Math.ceil(total / limit),
+    },
   });
 });
 
@@ -115,14 +115,13 @@ const getUsers = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 const getUserById = asyncHandler(async (req, res) => {
 
-
-  const user = await User.findById(req.params.id).select("-password");
+  const user = await User.findById(req.params.id).select('-password');
 
   if (user) {
     res.json(user);
   } else {
     res.status(404);
-    throw new Error("User not found");
+    throw new Error('User not found');
   }
 });
 
@@ -131,12 +130,12 @@ const getUserById = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 const updateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
-  
+
   if (user) {
     // Save old room value to check if changed
     const oldRoom = user.room;
     const newRoom = req.body.room;
-    
+
     // Update user fields
     user.name = req.body.name || user.name;
     user.field = req.body.field || user.field;
@@ -144,57 +143,58 @@ const updateUser = asyncHandler(async (req, res) => {
     user.group = req.body.group || user.group;
     user.level = req.body.level || user.level;
     user.room = req.body.room || user.room;
-    
+
     // Handle room change
     if (newRoom && newRoom !== oldRoom) {
       // If user already had a room, remove from that room
       if (oldRoom) {
         // Find old room and remove user from allocatedPersons
-        const oldRoomObj = await Room.findOne({ roomNo: oldRoom });
+        const oldRoomObj = await Room.findOne({roomNo: oldRoom});
         if (oldRoomObj) {
           await Room.findByIdAndUpdate(
-            oldRoomObj._id,
-            {
-              $pull: { allocatedPersons: user._id }
-            }
+              oldRoomObj._id,
+              {
+                $pull: {allocatedPersons: user._id},
+              },
           );
         }
       }
-      
+
       // Add user to new room
-      const newRoomObj = await Room.findOne({ roomNo: newRoom });
+      const newRoomObj = await Room.findOne({roomNo: newRoom});
       if (newRoomObj) {
         // Check if room has capacity
-        if (newRoomObj.allocatedPersons && newRoomObj.allocatedPersons.length >= newRoomObj.capacity) {
+        if (newRoomObj.allocatedPersons && newRoomObj.allocatedPersons.length >=
+            newRoomObj.capacity) {
           res.status(400);
-          throw new Error("Room has reached maximum capacity");
+          throw new Error('Room has reached maximum capacity');
         }
-        
+
         // Add user to room
         await Room.findByIdAndUpdate(
-          newRoomObj._id,
-          {
-            $addToSet: { allocatedPersons: user._id }
-          }
+            newRoomObj._id,
+            {
+              $addToSet: {allocatedPersons: user._id},
+            },
         );
       } else {
         res.status(404);
-        throw new Error("Selected room not found");
+        throw new Error('Selected room not found');
       }
     } else if (oldRoom && !newRoom) {
       // User is being removed from a room
-      const oldRoomObj = await Room.findOne({ roomNo: oldRoom });
+      const oldRoomObj = await Room.findOne({roomNo: oldRoom});
       if (oldRoomObj) {
         await Room.findByIdAndUpdate(
-          oldRoomObj._id,
-          {
-            $pull: { allocatedPersons: user._id }
-          }
+            oldRoomObj._id,
+            {
+              $pull: {allocatedPersons: user._id},
+            },
         );
       }
-      
+
       // Clear room field
-      user.room = "";
+      user.room = '';
     }
 
     // Handle photo update if a new photo is uploaded
@@ -204,12 +204,12 @@ const updateUser = asyncHandler(async (req, res) => {
         if (user.cloudinaryId) {
           await cloudinary.uploader.destroy(user.cloudinaryId);
         }
-        
+
         // Upload new image
         const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: "user_photos",
+          folder: 'user_photos',
         });
-        
+
         user.photo = result.secure_url;
         user.cloudinaryId = result.public_id;
       } catch (error) {
@@ -230,12 +230,12 @@ const updateUser = asyncHandler(async (req, res) => {
       role: updatedUser.role,
       level: updatedUser.level,
       group: updatedUser.group,
-      room: updatedUser.room
+      room: updatedUser.room,
     });
 
   } else {
     res.status(404);
-    throw new Error("User not found");
+    throw new Error('User not found');
   }
 });
 
@@ -255,25 +255,25 @@ const deleteUser = asyncHandler(async (req, res) => {
         // Continue with user deletion even if cloudinary deletion fails
       }
     }
-    
+
     // If user has a room assigned, remove them from that room
     if (user.room) {
-      const room = await Room.findOne({ roomNo: user.room });
+      const room = await Room.findOne({roomNo: user.room});
       if (room) {
         await Room.findByIdAndUpdate(
-          room._id,
-          {
-            $pull: { allocatedPersons: user._id }
-          }
+            room._id,
+            {
+              $pull: {allocatedPersons: user._id},
+            },
         );
       }
     }
-    
+
     await user.deleteOne();
-    res.json({ message: "User removed" });
+    res.json({message: 'User removed'});
   } else {
     res.status(404);
-    throw new Error("User not found");
+    throw new Error('User not found');
   }
 });
 
@@ -286,12 +286,12 @@ const updateUserPhoto = asyncHandler(async (req, res) => {
   if (user && req.file) {
     // Delete the previous image from cloudinary
     await cloudinary.uploader.destroy(user.cloudinaryId);
-    
+
     // Upload new image
     const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "user_photos",
+      folder: 'user_photos',
     });
-    
+
     user.photo = result.secure_url;
     user.cloudinaryId = result.public_id;
 
@@ -299,17 +299,17 @@ const updateUserPhoto = asyncHandler(async (req, res) => {
 
     res.json({
       photo: updatedUser.photo,
-      message: "Photo updated successfully",
+      message: 'Photo updated successfully',
     });
   } else if (!req.file) {
     res.status(400);
-    throw new Error("Please upload a photo");
+    throw new Error('Please upload a photo');
   } else {
     res.status(404);
-    throw new Error("User not found");
+    throw new Error('User not found');
   }
 });
-  
+
 // @desc    Delete profile photo
 // @route   DELETE /api/users/photo
 // @access  Private
@@ -322,22 +322,23 @@ const deleteUserPhoto = asyncHandler(async (req, res) => {
       if (user.cloudinaryId) {
         await cloudinary.uploader.destroy(user.cloudinaryId);
       }
-      
+
       // Upload a default avatar to cloudinary
       const result = await cloudinary.uploader.upload(
-        "https://ui-avatars.com/api/?name=" + encodeURIComponent(user.name) + "&background=random",
-        { folder: "user_photos" }
+          'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name) +
+          '&background=random',
+          {folder: 'user_photos'},
       );
-      
+
       // Update user with new default photo
       user.photo = result.secure_url;
       user.cloudinaryId = result.public_id;
-      
+
       await user.save();
-      
-      res.json({ 
-        message: "Photo removed and set to default",
-        photo: user.photo
+
+      res.json({
+        message: 'Photo removed and set to default',
+        photo: user.photo,
       });
     } catch (error) {
       console.error('Error in deleteUserPhoto:', error);
@@ -346,7 +347,7 @@ const deleteUserPhoto = asyncHandler(async (req, res) => {
     }
   } else {
     res.status(404);
-    throw new Error("User not found");
+    throw new Error('User not found');
   }
 });
 
@@ -354,48 +355,48 @@ const deleteUserPhoto = asyncHandler(async (req, res) => {
 // @route   GET /api/users/search
 // @access  Private/Admin
 const searchUsers = asyncHandler(async (req, res) => {
-  const { query, group, level } = req.query;
-  
+  const {query, group, level} = req.query;
+
   if (!query && !group && !level) {
     res.status(400);
-    throw new Error("Please provide a search query, group, or level");
+    throw new Error('Please provide a search query, group, or level');
   }
-  
+
   const searchQuery = {};
-  
+
   // Add unallocated filter (users without a room)
   if (req.query.unallocated === 'true') {
-    searchQuery.room = { $in: ["", null] };
+    searchQuery.room = {$in: ['', null]};
   }
-  
+
   // Add query parameter for name, mobile, or field search
   if (query) {
     searchQuery.$or = [
-      { name: { $regex: query, $options: 'i' } },
-      { mobile: { $regex: query, $options: 'i' } },
-      { field: { $regex: query, $options: 'i' } }
+      {name: {$regex: query, $options: 'i'}},
+      {mobile: {$regex: query, $options: 'i'}},
+      {field: {$regex: query, $options: 'i'}},
     ];
   }
-  
+
   // Add group filter if provided
   if (group) {
     searchQuery.group = group;
   }
-  
+
   // Add level filter if provided
   if (level) {
     searchQuery.level = level;
   }
-  
-  const users = await User.find(searchQuery).select("-password").limit(20);
-  
+
+  const users = await User.find(searchQuery).select('-password').limit(20);
+
   res.json(users);
 });
 
 // Get Unallocated Users
 const getUnallocatedUsers = async (req, res) => {
   try {
-    const { group, level } = req.query;
+    const {group, level} = req.query;
 
     // const users = await User.find({
     //   $and:[
@@ -405,7 +406,7 @@ const getUnallocatedUsers = async (req, res) => {
     // ]}  );
 
     const query = {
-      room: { $in: ["", null] },
+      room: {$in: ['', null]},
     };
 
     if (level) {
@@ -424,10 +425,10 @@ const getUnallocatedUsers = async (req, res) => {
       users,
     });
   } catch (error) {
-    console.error("Error fetching unallocated users:", error);
+    console.error('Error fetching unallocated users:', error);
     res.status(500).json({
       ok: false,
-      message: "Server error while fetching unallocated users",
+      message: 'Server error while fetching unallocated users',
     });
   }
 };
@@ -435,25 +436,25 @@ const getUnallocatedUsers = async (req, res) => {
 // Get Allocated Users by IDs
 const getAllocatedUsers = async (req, res) => {
   try {
-    const { userIds } = req.query;
-    
+    const {userIds} = req.query;
+
     if (!userIds) {
       return res.status(400).json({
         ok: false,
-        message: 'User IDs are required'
+        message: 'User IDs are required',
       });
-  }
-    
+    }
+
     // Split the comma-separated string into an array of IDs
     const userIdArray = userIds.split(',').filter(id => id.trim().length > 0);
-    
+
     if (userIdArray.length === 0) {
       return res.status(200).json({
         ok: true,
-        users: []
+        users: [],
       });
     }
-    
+
     // Validate that all IDs are valid MongoDB ObjectIDs
     const mongoose = await import('mongoose');
     const validIds = userIdArray.filter(id => {
@@ -463,42 +464,87 @@ const getAllocatedUsers = async (req, res) => {
         return false;
       }
     });
-    
+
     if (validIds.length === 0) {
       return res.status(200).json({
         ok: true,
-        users: []
+        users: [],
       });
     }
-    
+
     // Fetch users by their IDs
     const users = await User.find({
-      _id: { $in: validIds }
+      _id: {$in: validIds},
     }).select('-password');
-    
+
     res.status(200).json({
       ok: true,
-      users
+      users,
     });
   } catch (error) {
     console.error('Error fetching allocated users:', error);
     res.status(500).json({
       ok: false,
       message: 'Server error while fetching allocated users',
-      error: error.message
+      error: error.message,
     });
   }
 };
 
-export { 
-  registerUser, 
-  getUsers, 
-  getUserById, 
-  updateUser, 
-  deleteUser, 
-  updateUserPhoto, 
+const getUserFromChitthiNumber = async (req, res) => {
+  try {
+    const {chitthiNumber} = req.params;
+
+    if (!chitthiNumber) {
+      return res.status(400).json({
+        ok: false,
+        message: 'chitthi number is  required',
+      });
+    }
+
+    console.log('Chitthi : ', chitthiNumber, ' Len ', chitthiNumber.length);
+
+    // Fetch users by their IDs
+    const user = await User.findOne({uniqueId: chitthiNumber});
+
+    if (!user) {
+      return res.status(400).json({
+        ok: false,
+        message: 'user does not with givven Chitthi Number',
+      });
+    }
+    
+    if(user.room && user.room !== ''){
+      return res.status(400).json({
+        ok: false,
+        message: `User already allocated in Room ${user.room}`,
+      });
+    }
+
+    res.status(200).json({
+      ok: true,
+      user,
+    });
+  } catch (error) {
+    console.error('Error to get user from chitthi number :', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Server error while fetching  user from chitthi number',
+      error: error.message,
+    });
+  }
+};
+
+export {
+  registerUser,
+  getUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  updateUserPhoto,
   deleteUserPhoto,
   getUnallocatedUsers,
   getAllocatedUsers,
-  searchUsers
+  searchUsers,
+  getUserFromChitthiNumber,
 }; 

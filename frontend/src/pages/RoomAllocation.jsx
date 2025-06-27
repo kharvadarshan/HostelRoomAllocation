@@ -51,31 +51,33 @@ const RoomAllocation = () => {
       <div className="container-fluid px-4 py-8 max-w-full">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Left sidebar - Floor and filters */}
-          <div className="md:w-1/5">
-            <FloorSelector
-                floors={floors}
-                currentFloor={currentFloor}
-                setCurrentFloor={setCurrentFloor}
-                selectedGroup={selectedGroup}
-                setSelectedGroup={setSelectedGroup}
-                selectedLevel={selectedLevel}
-                setSelectedLevel={setSelectedLevel}
-                loading={loading}
-            />
-
-            <FilterControls
-                selectedGroup={selectedGroup}
-                setSelectedGroup={setSelectedGroup}
-                selectedLevel={selectedLevel}
-                setSelectedLevel={setSelectedLevel}
-                loadUnallocatedUsers={loadUnallocatedUsers}
-                usersLoading={usersLoading}
-                isSelecting={isSelecting}
-            />
-          </div>
+          {/*Comment due to we use chitthi*/}
+          {/*<div className="md:w-1/5">*/}
+          {/*  <FloorSelector*/}
+          {/*      floors={floors}*/}
+          {/*      currentFloor={currentFloor}*/}
+          {/*      setCurrentFloor={setCurrentFloor}*/}
+          {/*      selectedGroup={selectedGroup}*/}
+          {/*      setSelectedGroup={setSelectedGroup}*/}
+          {/*      selectedLevel={selectedLevel}*/}
+          {/*      setSelectedLevel={setSelectedLevel}*/}
+          {/*      loading={loading}*/}
+          {/*  />*/}
+          
+          {/*  <FilterControls*/}
+          {/*      selectedGroup={selectedGroup}*/}
+          {/*      setSelectedGroup={setSelectedGroup}*/}
+          {/*      selectedLevel={selectedLevel}*/}
+          {/*      setSelectedLevel={setSelectedLevel}*/}
+          {/*      loadUnallocatedUsers={loadUnallocatedUsers}*/}
+          {/*      usersLoading={usersLoading}*/}
+          {/*      isSelecting={isSelecting}*/}
+          {/*  />*/}
+          {/*</div>*/}
 
           {/* Main content */}
-          <div className="md:w-4/5">
+          {/*<div className="md:w-4/5">*/}
+          <div className="w-full">
             <Card className="h-full">
               <CardHeader>
                 <RoomAllocationHeader

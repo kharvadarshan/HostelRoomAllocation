@@ -37,6 +37,9 @@ const userSchema = mongoose.Schema(
         enum: ['A', 'B', 'C'],
         default: 'C',
       },
+      uniqueId:{
+        type: Number,
+      },
       group: {
         type: String,
         enum: [
