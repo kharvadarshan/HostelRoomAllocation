@@ -6,13 +6,13 @@ export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const { page = 1, limit = 10, search = '', role = 'all' } = params;
+      const { page = 1, limit = 10, search = '', group = 'all' } = params;
       const { data } = await api.get('/users', {
         params: {
           page,
           limit,
           search,
-          role
+          group
         }
       });
       return data;
