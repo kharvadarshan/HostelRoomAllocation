@@ -39,7 +39,7 @@ const AdminPanel = () => {
   const [showFullPhoto, setShowFullPhoto] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('all');
+  const [filterGroup, setFilterGroup] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [editUserData, setEditUserData] = useState({
     name: '',
@@ -58,7 +58,7 @@ const AdminPanel = () => {
   useEffect(() => {
     loadUsers();
     fetchRooms();
-  }, [dispatch, currentPage, filterRole]);
+  }, [dispatch, currentPage, filterGroup]);
 
   // Debounce search
   useEffect(() => {
@@ -74,7 +74,7 @@ const AdminPanel = () => {
       page: currentPage,
       limit: 10,
       search: searchTerm,
-      role: filterRole
+      group: filterGroup
     }));
   };
 
@@ -644,12 +644,13 @@ const AdminPanel = () => {
               <FiFilter className="text-gray-400" />
               <select
                 className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
+                value={filterGroup}
+                onChange={(e) => setFilterGroup(e.target.value)}
               >
-                <option value="all">All Roles</option>
-                <option value="user">Users Only</option>
-                <option value="admin">Admins Only</option>
+                <option value="all">All Groups</option>
+                {names.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
               </select>
             </div>
           </div>

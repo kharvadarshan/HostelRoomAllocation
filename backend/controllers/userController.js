@@ -69,7 +69,7 @@ const getUsers = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const searchTerm = req.query.search || '';
-  const filterRole = req.query.role || 'all';
+  const filterGroup = req.query.group || 'all';
 
   // Calculate skip value for pagination
   const skip = (page - 1) * limit;
@@ -85,8 +85,8 @@ const getUsers = asyncHandler(async (req, res) => {
     ];
   }
 
-  if (filterRole !== 'all') {
-    query.role = filterRole;
+  if (filterGroup !== 'all') {
+    query.group = filterGroup;
   }
 
   // Get total count for pagination
